@@ -2,29 +2,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "main.h"
+#include "image-lib.h"
+
+
+char *create_out_directory(char *directory){
+    char *out_filepath;
+    out_filepath = malloc((strlen(directory) + strlen(OLD_PHOTO_DIR) +2) * sizeof(char));
+    if (!out_filepath) return NULL;
+
+    strcpy(out_filepath, directory);
+    strcat(out_filepath, "/");
+    strcat(out_filepath, OLD_PHOTO_DIR);
+
+    create_directory(out_filepath);
+    
+    return out_filepath;
+}
 
 void print_filenames(image_filenames *image_names){
+    if (!image_names) return;
     for (int i = 0; i < image_names->count; i++){
-        printf("%s ", image_names->filenames[i]);
+        printf("%s ", image_names->filenames_directory[i]);
     }
     printf("\n");
 }
 
 void free_names(char **names, int n_names){
-    for (int i = 0; i < n_names; i++){
+    if (!names) return;
+    for (int i = 0; i <= n_names; i++){
         free(names[i]);
     }
     free(names);
 }
 
+// filepath without final '/'
 image_filenames *get_filenames(char *filepath){
+    if (!filepath) return NULL;
     char filename[strlen("/image-list.txt") + strlen(filepath) + 1];
 
 #ifdef DEBUG
     printf("[INFO] checking char %c\n", filepath[strlen(filepath) -1]);
 #endif
-
-    if (filepath[strlen(filepath) -1] == '/') filepath[strlen(filepath) -1] = '\0';
 
     strcpy(filename, filepath);
     strcat(filename, "/image-list.txt");
@@ -37,38 +55,71 @@ image_filenames *get_filenames(char *filepath){
     if (!fp) return NULL;
 
     char line[256];
-    char **files = NULL;
+    char **files_directory = NULL;
+    char **image_names = NULL;
 
     int n_files = 0;
-    while(fgets(line, sizeof(line), fp)) n_files++;
+    while(fgets(line, sizeof(line), fp)) {
+        if (line[strlen(line)-1] == '\n'){
+            line[strlen(line)-1] = '\0';
+        }
+        n_files += is_jpeg(line);
+    }
 
-    files = malloc(n_files * sizeof(char*));
-    if (!files) return NULL;
+#ifdef DEBUG
+    printf("[INFO] got %i files!\n", n_files);
+#endif
+
+    files_directory = malloc(n_files * sizeof(char*));
+    if (!files_directory) return NULL;
+
+    image_names = malloc(n_files * sizeof(char*));
+    if (!image_names) return NULL;
 
     rewind(fp);
 
     for (int i = 0; fgets(line, sizeof(line), fp); i++){
-        files[i] = calloc((strlen(line) +1), sizeof(char));
-        if (!files[i]) {
-            free_names(files, i);
+        files_directory[i] = calloc(strlen(line), sizeof(char));
+        if (!files_directory[i]) {
+            free_names(files_directory, i-1);
+            free_names(image_names, i-1);
             return NULL;
         }
-        strcpy(files[i], line);
-
-        if (files[i][strlen(files[i])-1] == '\n'){
-            files[i][strlen(files[i])-1] = '\0';
+        image_names[i] = calloc(strlen(line), sizeof(char));
+        if (!image_names[i]) {
+            free_names(image_names, i-1);
+            free_names(files_directory, i);
+            return NULL;
         }
+
+        if (line[strlen(line)-1] == '\n'){
+            line[strlen(line)-1] = '\0';
+        }
+
+        if (!is_jpeg(line)){
+            i--;
+            continue;
+        }
+
+        strcpy(files_directory[i], filepath);
+        strcat(files_directory[i], "/");
+        strcat(files_directory[i], line);
+
+        strcpy(image_names[i], line);
     }
 
     image_filenames *images = malloc (sizeof(*images));
     if (!images){
-        free_names(files, n_files);
+        free_names(files_directory, n_files);
         return NULL;
     }
 
-    images->filenames = files;
+    images->out_directory = NULL;
+    images->filenames_directory = files_directory;
+    images->filenames = image_names;
     images->count = n_files;
 
     fclose(fp);
     return images;
 }
+

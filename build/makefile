@@ -12,7 +12,9 @@ endif
 compile::
 	gcc -c $(SRC)/main.c $(LINKERS) $(CFLAGS) $(WARNINGS)
 	gcc -c $(SRC)/read.c $(LINKERS) $(CFLAGS) $(WARNINGS)
-	gcc main.o read.o $(LINKERS) $(CFLAGS) $(WARNINGS) -o $(OUT_NAME)
+	gcc -c $(SRC)/image.c $(LINKERS) $(CFLAGS) $(WARNINGS)
+	gcc -c $(SRC)/image-lib.c $(LINKERS) $(CFLAGS) $(WARNINGS)
+	gcc main.o read.o image.o image-lib.o $(LINKERS) $(CFLAGS) $(WARNINGS) -o $(OUT_NAME)
 
 clean::
 	rm *.o
