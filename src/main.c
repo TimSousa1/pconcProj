@@ -5,6 +5,7 @@
 #include <gd.h>
 #include <unistd.h>
 #include <time.h>
+#include <pthread.h>
 
 #include <main.h>
 #include <image-lib.h>
@@ -55,11 +56,33 @@ int main(int argc, char **argv){
 		}
 	}
 
-    thread_open_images(image_names, 0, 0, texture_filepath);
+	int i;
+
+	pthread_t thread_id[n_threads];
+	thread_resources resources;
+
+	resources.images = image_names;
+	resources.texture = read_png_file(texture_filepath);
+
+	for (i = 0; i < n_threads; i++) {
+		pthread_create(&thread_id[i], NULL, thread_process_images, &resources);
+	}
+	void *ret;
+	thread_output *output;
+	struct timespec thread_time[n_threads];
+	int images_per_thread[n_threads];
+	for (i = 0; i < n_threads; i++) {
+		pthread_join(thread_id[i], &ret);
+		output = (thread_output *) ret;
+		thread_time[i] = output->time;
+		images_per_thread[i] = output->n_images_processed;
+	}
 
 	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
 
-	//write_timings(diff_timespec(&end_time_total, &start_time_total), NULL, NULL, n_threads, NULL, filepath);
+	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
+
+	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath);
 
     return 0;
 }

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <gd.h>
 
@@ -27,10 +28,13 @@ int is_jpeg(char *filename){
     return 1;
 }
 
+static int image_index = 0;
+
 gdImagePtr *open_images(image_filenames *image_names, int low, int high);
 
 void thread_open_images(image_filenames *image_names, int low, int high, char *texture_filepath){
-    gdImagePtr *images, paper_texture;
+
+	gdImagePtr *images, paper_texture;
     int n_images;
     char out_file[256];
 
@@ -72,4 +76,51 @@ gdImagePtr *open_images(image_filenames *image_names, int low, int high){
         images[i] = read_jpeg_file(image_names->filenames_directory[i]);
     }
     return images;
+}
+
+void *thread_process_images(void *arg) {
+
+	struct timespec start_time, end_time;
+
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
+
+	thread_resources *resources = (thread_resources *) arg;
+
+	thread_output *ret = malloc(sizeof(thread_output));
+
+	int n_images = resources->images->count;
+	int i, images_processed = 0;
+	char out_file[256];
+	gdImagePtr paper_texture = resources->texture;
+
+	gdImagePtr image;
+
+	do {
+
+		i = image_index++;
+		if (i >= n_images) break;
+	
+		strcpy(out_file, resources->images->out_directory);
+        strcat(out_file, "/");
+        strcat(out_file, resources->images->filenames[i]);
+		if (access(out_file, F_OK) == 0) continue;
+
+		image = read_jpeg_file(resources->images->filenames_directory[i]);
+		gdImageContrast(image, -20);
+		gdImageSmooth(image, 20);
+		image = texture_image(image, paper_texture);
+		gdImageColor(image, 100, 60, 0, 0);
+
+		write_jpeg_file(image, out_file);
+		gdImageDestroy(image);	
+		images_processed++;
+
+	} while (i < n_images);
+
+	clock_gettime(CLOCK_MONOTONIC, &end_time);
+	
+	ret->time = diff_timespec(&end_time, &start_time);
+	ret->n_images_processed = images_processed;
+
+	return ret;
 }

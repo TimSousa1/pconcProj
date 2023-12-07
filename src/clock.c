@@ -13,11 +13,10 @@ int count_digits(int number){
 
 }
 
-void write_timings(struct timespec total_time, struct timespec *start_threads_time, 
-		struct timespec *end_threads_time, int n_threads, int *images_per_thread, char *filepath) {
+void write_timings(struct timespec total_time, struct timespec *threads_time,
+		int n_threads, int *images_per_thread, char *filepath) {
 	
 	char *file_name;
-	struct timespec thread_time;
 	int len = strlen("/timings_.txt") + count_digits(n_threads) + strlen(filepath) + 1;
 	file_name = malloc(len*sizeof(char));
 
@@ -33,9 +32,8 @@ void write_timings(struct timespec total_time, struct timespec *start_threads_ti
 	
 	fprintf(fp, "Total Time: %d %li.%li\n", n_threads, total_time.tv_sec, total_time.tv_nsec);
 
-	for (int i = 0; i < n_threads; i++) {
-		thread_time = diff_timespec(&end_threads_time[i], &start_threads_time[i]); 
-		fprintf(fp, "Thread_%d: %d %li.%li", i, images_per_thread[i], thread_time.tv_sec, thread_time.tv_nsec);
+	for (int i = 0; i < n_threads; i++) { 
+		fprintf(fp, "Thread_%d: %d %li.%li\n", i, images_per_thread[i], threads_time[i].tv_sec, threads_time[i].tv_nsec);
 	}
 	
 }
