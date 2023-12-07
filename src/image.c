@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <gd.h>
 #include <string.h>
 #include <unistd.h>
-#include "main.h"
-#include "image-lib.h"
+#include <gd.h>
+
+#include <main.h>
+#include <image-lib.h>
 
 int is_jpeg(char *filename){
     if (!filename) return 0;

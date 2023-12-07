@@ -1,8 +1,9 @@
-#include "image-lib.h"
 #include <sys/stat.h>
 #include <dirent.h>
 #include <assert.h>
 #include <time.h>
+
+#include <image-lib.h>
 /******************************************************************************
  * texture_image()
  *

@@ -3,8 +3,8 @@
 #include <string.h>
 #include <gd.h>
 
-#include "main.h"
-#include "image-lib.h"
+#include <main.h>
+#include <image-lib.h>
 
 
 int main(int argc, char **argv){
