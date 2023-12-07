@@ -21,10 +21,10 @@ endif
 
 
 %.o : $(SRC)/%.c $(DEPS)
-	$(CC) -c $< $(CFLAGS) $(LDLIBS)
+	$(CC) -c $< $(CFLAGS) $(LDLIBS) -g
 
 $(OUT_NAME) : $(OBJ) $(DEPS)
-	$(CC) $(OBJ) -o $@ $(CFLAGS) $(LDLIBS)
+	$(CC) $(OBJ) -o $@ $(CFLAGS) $(LDLIBS) -g
 
 clean:
 	rm *.o
