@@ -59,7 +59,7 @@ int main(int argc, char **argv){
 
 	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
 
-	//write_timings(diff_timespec(&end_time_total, &start_time_total), NULL, NULL, n_threads, NULL);
+	//write_timings(diff_timespec(&end_time_total, &start_time_total), NULL, NULL, n_threads, NULL, filepath);
 
     return 0;
 }
