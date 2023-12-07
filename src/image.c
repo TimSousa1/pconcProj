@@ -18,7 +18,7 @@ int is_jpeg(char *filename){
     printf("[INFO] got file %s\n", filename);
 #endif
 
-    for (int i = strlen(filename) - extension_size; i < strlen(filename); i++){
+    for (long unsigned int i = strlen(filename) - extension_size; i < strlen(filename); i++){
 #ifdef DEBUG
         printf("[INFO] checking %c against %c\n", filename[i], extension[i - strlen(filename) + extension_size]);
 #endif
@@ -29,18 +29,16 @@ int is_jpeg(char *filename){
 
 gdImagePtr *open_images(image_filenames *image_names, int low, int high);
 
-void thread_open_images(image_filenames *image_names, int low, int high, char *out_filepath){
-    gdImagePtr *images;
+void thread_open_images(image_filenames *image_names, int low, int high, char *texture_filepath){
+    gdImagePtr *images, paper_texture;
     int n_images;
     char out_file[256];
 
     n_images = image_names->count;
     images = open_images(image_names, low, high);
-    for (int i = 0; i < n_images; i++){
-        gdImageContrast(images[i], -20);
-    }
+	paper_texture = read_png_file(texture_filepath);
 
-    for (int i = 0; i < n_images; i++){
+	for (int i = 0; i < n_images; i++){
         strcpy(out_file, image_names->out_directory);
         strcat(out_file, "/");
         strcat(out_file, image_names->filenames[i]);
@@ -51,13 +49,20 @@ void thread_open_images(image_filenames *image_names, int low, int high, char *o
 #endif
             continue;
         }
-        write_jpeg_file(images[i], out_file);
+
+		gdImageContrast(images[i], -20);
+		gdImageSmooth(images[i], 20);
+		images[i] = texture_image(images[i], paper_texture);
+		gdImageColor(images[i], 100, 60, 0, 0);
+
+		write_jpeg_file(images[i], out_file);
+		gdImageDestroy(images[i]);	
     }
 }
 
 gdImagePtr *open_images(image_filenames *image_names, int low, int high){
     int n_images;
-    gdImagePtr *images, tmp;
+    gdImagePtr *images;
 
     n_images = image_names->count;
     images = malloc (n_images * sizeof(gdImagePtr));

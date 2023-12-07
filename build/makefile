@@ -5,7 +5,7 @@ WARNINGS=-Wall -Wextra
 LDLIBS=-lgd
 CFLAGS=-O3
 
-OBJ=main.o read.o image.o image-lib.o
+OBJ=main.o read.o image.o image-lib.o clock.o
 OUT_NAME=old-photo-paralelo-A
 
 SRC=../src
