@@ -35,5 +35,5 @@ void write_timings(struct timespec total_time, struct timespec *threads_time,
 	for (int i = 0; i < n_threads; i++) { 
 		fprintf(fp, "Thread_%d: %d %li.%li\n", i, images_per_thread[i], threads_time[i].tv_sec, threads_time[i].tv_nsec);
 	}
-	
+	free(file_name);	
 }

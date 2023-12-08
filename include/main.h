@@ -24,6 +24,7 @@ image_filenames *get_filenames(char *filepath);
 int is_jpeg(char *image_name);
 
 void print_filenames(image_filenames*);
+void free_image_filenames(image_filenames *images);
 void thread_open_images(image_filenames *image_names, int low, int high, char *texture_filepath);
 char *create_out_directory(char *directory);
 void *thread_process_images(void *arg);

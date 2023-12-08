@@ -1,0 +1,7 @@
+Total Time: 6 2.198422499
+Thread_0: 0 0.12250
+Thread_1: 0 0.10006
+Thread_2: 0 0.11312
+Thread_3: 0 0.1871369
+Thread_4: 0 0.17484
+Thread_5: 0 0.10881

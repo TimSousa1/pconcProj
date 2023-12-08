@@ -5,7 +5,6 @@
 #include <main.h>
 #include <image-lib.h>
 
-
 char *create_out_directory(char *directory){
     char *out_filepath;
     out_filepath = malloc((strlen(directory) + strlen(OLD_PHOTO_DIR) +2) * sizeof(char));
@@ -30,10 +29,18 @@ void print_filenames(image_filenames *image_names){
 
 void free_names(char **names, int n_names){
     if (!names) return;
-    for (int i = 0; i <= n_names; i++){
+    for (int i = 0; i < n_names; i++){
         free(names[i]);
     }
     free(names);
+}
+
+void free_image_filenames(image_filenames *images) {
+	if (!images) return;
+	free_names(images->filenames, images->count);
+	free_names(images->filenames_directory, images->count);
+	free(images->out_directory);
+	free(images);
 }
 
 // filepath without final '/'
@@ -80,13 +87,13 @@ image_filenames *get_filenames(char *filepath){
     rewind(fp);
 
     for (int i = 0; fgets(line, sizeof(line), fp); i++){
-        files_directory[i] = calloc(strlen(line), sizeof(char));
+        files_directory[i] = malloc((strlen(line)+strlen(filepath)+2)*sizeof(char));
         if (!files_directory[i]) {
             free_names(files_directory, i-1);
             free_names(image_names, i-1);
             return NULL;
         }
-        image_names[i] = calloc(strlen(line), sizeof(char));
+        image_names[i] = malloc((strlen(line)+1)*sizeof(char));
         if (!image_names[i]) {
             free_names(image_names, i-1);
             free_names(files_directory, i);

@@ -25,6 +25,7 @@ int main(int argc, char **argv){
     image_filenames *image_names;
 
     n_threads = atoi(argv[2]);
+	if (n_threads++ < 0) return 1;
     filepath = argv[1];
 
     image_names = get_filenames(filepath);
@@ -40,8 +41,10 @@ int main(int argc, char **argv){
 #endif
 	
 	image_names->out_directory = create_out_directory(filepath);
-    if (!image_names->out_directory) return 1; // MEM LEAK!
-
+    if (!image_names->out_directory) {
+		free_image_filenames(image_names);
+		return 1; // MEM LEAK!
+	}
 	char texture_name[] = "/paper-texture.png";
 
 	char *texture_filepath = malloc((strlen(texture_name)+strlen(filepath)+1)*sizeof(char));
@@ -52,6 +55,7 @@ int main(int argc, char **argv){
 		strcpy(texture_filepath, texture_name);
 		if (access(texture_filepath, F_OK) == -1) {
 			fprintf(stderr, "[ERROR] missing texture image!\n");
+			free_image_filenames(image_names);	
 			return 1;
 		}
 	}
@@ -76,12 +80,16 @@ int main(int argc, char **argv){
 		output = (thread_output *) ret;
 		thread_time[i] = output->time;
 		images_per_thread[i] = output->n_images_processed;
+		free(ret);
 	}
 
+	free_image_filenames(image_names);	
+	free(texture_filepath);
+	gdImageDestroy(resources.texture);
+	
 	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
-
 	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
-
+	
 	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath);
 
     return 0;
