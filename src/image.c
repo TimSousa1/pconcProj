@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,8 +28,6 @@ int is_jpeg(char *filename){
     }
     return 1;
 }
-
-static int image_index = 0;
 
 gdImagePtr *open_images(image_filenames *image_names, int low, int high);
 
@@ -78,6 +77,11 @@ gdImagePtr *open_images(image_filenames *image_names, int low, int high){
     return images;
 }
 
+int image_index = 0;
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 void *thread_process_images(void *arg) {
 
 	struct timespec start_time, end_time;
@@ -96,10 +100,11 @@ void *thread_process_images(void *arg) {
 	gdImagePtr image;
 
 	do {
-
+		pthread_mutex_lock(&mutex);
 		i = image_index++;
+		pthread_mutex_unlock(&mutex);
 		if (i >= n_images) break;
-	
+
 		strcpy(out_file, resources->images->out_directory);
         strcat(out_file, "/");
         strcat(out_file, resources->images->filenames[i]);

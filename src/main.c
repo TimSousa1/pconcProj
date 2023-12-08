@@ -69,7 +69,7 @@ int main(int argc, char **argv){
 	resources.texture = read_png_file(texture_filepath);
 
 	for (i = 0; i < n_threads; i++) {
-		pthread_create(&thread_id[i], NULL, thread_process_images, &resources);
+		pthread_create(&thread_id[i], NULL, &thread_process_images, &resources);
 	}
 	void *ret;
 	thread_output *output;
