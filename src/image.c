@@ -12,73 +12,45 @@
 int is_jpeg(char *filename){
     if (!filename) return 0;
 
-    int extension_size;
-    char extension[] = ".jpeg";
-    extension_size = strlen(extension);
+    int extensionJPEG_size;
+    int extensionJPG_size;
+
+    char extensionJPEG[] = ".jpeg";
+    char extensionJPG[] = ".jpg";
+
+    extensionJPEG_size = strlen(extensionJPEG);
+    extensionJPG_size = strlen(extensionJPG);
+
+    int jpegTrue = 1;
 
 #ifdef DEBUG
     printf("[INFO] got file %s\n", filename);
 #endif
 
-    for (long unsigned int i = strlen(filename) - extension_size; i < strlen(filename); i++){
+    for (long unsigned int i = strlen(filename) - extensionJPEG_size; i < strlen(filename); i++){
 #ifdef DEBUG
         printf("[INFO] checking %c against %c\n", filename[i], extension[i - strlen(filename) + extension_size]);
 #endif
-        if (filename[i] != extension[i - strlen(filename) + extension_size]) return 0;
+        if (filename[i] != extensionJPEG[i - strlen(filename) + extensionJPEG_size]) {
+            jpegTrue = 0;
+            break;
+        }
     }
+
+    if (jpegTrue) return 1;
+
+    for (long unsigned int i = strlen(filename) - extensionJPG_size; i < strlen(filename); i++){
+#ifdef DEBUG
+        printf("[INFO] checking %c against %c\n", filename[i], extension[i - strlen(filename) + extension_size]);
+#endif
+        if (filename[i] != extensionJPG[i - strlen(filename) + extensionJPG_size]) return 0;
+    }
+
     return 1;
 }
 
-gdImagePtr *open_images(image_filenames *image_names, int low, int high);
-
-void thread_open_images(image_filenames *image_names, int low, int high, char *texture_filepath){
-
-	gdImagePtr *images, paper_texture;
-    int n_images;
-    char out_file[256];
-
-    n_images = image_names->count;
-    images = open_images(image_names, low, high);
-	paper_texture = read_png_file(texture_filepath);
-
-	for (int i = 0; i < n_images; i++){
-        strcpy(out_file, image_names->out_directory);
-        strcat(out_file, "/");
-        strcat(out_file, image_names->filenames[i]);
-
-        if (access(out_file, F_OK) == 0){
-#ifdef DEBUG
-            printf("file %s already exists!\n", out_file);
-#endif
-            continue;
-        }
-
-		gdImageContrast(images[i], -20);
-		gdImageSmooth(images[i], 20);
-		images[i] = texture_image(images[i], paper_texture);
-		gdImageColor(images[i], 100, 60, 0, 0);
-
-		write_jpeg_file(images[i], out_file);
-		gdImageDestroy(images[i]);	
-    }
-}
-
-gdImagePtr *open_images(image_filenames *image_names, int low, int high){
-    int n_images;
-    gdImagePtr *images;
-
-    n_images = image_names->count;
-    images = malloc (n_images * sizeof(gdImagePtr));
-    if (!images) return NULL;
-
-    for (int i = 0; i < n_images; i++){
-        images[i] = read_jpeg_file(image_names->filenames_directory[i]);
-    }
-    return images;
-}
 
 int image_index = 0;
-
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -98,26 +70,35 @@ void *thread_process_images(void *arg) {
 	gdImagePtr paper_texture = resources->texture;
 
 	gdImagePtr image;
+	gdImagePtr image_tmp;
 
 	do {
 		pthread_mutex_lock(&mutex);
 		i = image_index++;
 		pthread_mutex_unlock(&mutex);
+
 		if (i >= n_images) break;
 
 		strcpy(out_file, resources->images->out_directory);
         strcat(out_file, "/");
         strcat(out_file, resources->images->filenames[i]);
+
 		if (access(out_file, F_OK) == 0) continue;
 
 		image = read_jpeg_file(resources->images->filenames_directory[i]);
+
 		gdImageContrast(image, -20);
 		gdImageSmooth(image, 20);
-		image = texture_image(image, paper_texture);
-		gdImageColor(image, 100, 60, 0, 0);
+
+        image_tmp = image;
+		image = texture_image(image_tmp, paper_texture);
+        gdImageDestroy(image_tmp);
+
+        gdImageColor(image, 100, 60, 0, 0);
 
 		write_jpeg_file(image, out_file);
 		gdImageDestroy(image);	
+
 		images_processed++;
 
 	} while (i < n_images);

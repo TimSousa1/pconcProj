@@ -82,7 +82,10 @@ image_filenames *get_filenames(char *filepath){
     if (!files_directory) return NULL;
 
     image_names = malloc(n_files * sizeof(char*));
-    if (!image_names) return NULL;
+    if (!image_names) {
+        free(files_directory);
+        return NULL;
+    }
 
     rewind(fp);
 
