@@ -13,10 +13,8 @@ do
         echo ./old-photo-paralelo-A $folder $i
         ./old-photo-paralelo-A $folder $i
     done
-echo awk '(NR == 1) || (FNR > 1)' $folder/*.csv > $folder.csv
-awk '(NR == 1) || (FNR > 1)' $folder/*.csv > $folder.csv
 
-echo rm $folder/timing*
-rm $folder/timing*
+    echo awk '(NR == 1) || (FNR > 1)' $folder/*.csv > $folder.csv
+    awk '(NR == 1) || (FNR > 1)' $folder/*.csv > $folder.csv
 
 done
