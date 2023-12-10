@@ -12,7 +12,7 @@ ifdef DEBUG
 	CFLAGS=-g -D DEBUG
 endif
 
-CFLAGS += $(WARNING)
+CFLAGS += $(WARNINGS)
 LDLIBS=-lgd
 
 BUILDDIR = build

@@ -31,15 +31,9 @@ int main(int argc, char **argv){
 	if (n_threads <= 0) return 1;
 
     filepath = argv[1];
-    if (filepath[strlen(filepath)-1] == '/'){
-        filepath[strlen(filepath)-1] = '\0';
-    }
-
     image_names = get_filenames(filepath);
 
-    if (!image_names) {
-        return 1;
-    }
+    if (!image_names) return 1;
 
 #ifdef DEBUG
     printf("[INFO] got images: ");
@@ -116,7 +110,7 @@ int main(int argc, char **argv){
 	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
 	
 	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
-	write_to_csv(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
+	write_to_csv(total_time, n_threads, filepath);
 
     return 0;
 }

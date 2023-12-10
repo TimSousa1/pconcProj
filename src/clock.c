@@ -42,7 +42,7 @@ void write_timings(struct timespec total_time, struct timespec *threads_time, in
 
 
 // helper func for graphs
-void write_to_csv(struct timespec total_time, struct timespec *threads_time, int n_threads, int *images_per_thread, char *filepath, int n_images) {
+void write_to_csv(struct timespec total_time, int n_threads, char *filepath) {
 	
 	char *file_name;
 	int len = strlen("/timing_.csv") + count_digits(n_threads) + strlen(filepath) + 1;
