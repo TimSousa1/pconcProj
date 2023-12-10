@@ -14,82 +14,86 @@
 pthread_mutex_t lock;
 
 int main(int argc, char **argv){
-    
+
 	if (argc != 3) return 1;
-	
+
 	struct timespec start_time_total, end_time_total;
 
 	clock_gettime(CLOCK_MONOTONIC, &start_time_total);
 
 	int n_threads;
-    int n_images;
-    char *filepath;
+	int n_images;
+	char *filepath;
 
-    image_filenames *image_names;
+	image_filenames *image_names;
 
-    n_threads = atoi(argv[2]);
+	n_threads = atoi(argv[2]);
 	if (n_threads <= 0) return 1;
 
-    filepath = argv[1];
-    if (filepath[strlen(filepath)-1] == '/'){
-        filepath[strlen(filepath)-1] = '\0';
-    }
+	filepath = argv[1];
+	for (int i = strlen(filepath)-1; i >= 0; i--) {
+		if (filepath[strlen(filepath)-1] == '/'){
+			filepath[strlen(filepath)-1] = '\0';
+		} else break;
+	}
+	image_names = get_filenames(filepath);
 
-    image_names = get_filenames(filepath);
-
-    if (!image_names) {
-        return 1;
-    }
+	if (!image_names) {
+		return 1;
+	}
 
 #ifdef DEBUG
-    printf("[INFO] got images: ");
-    print_filenames(image_names);
+	printf("[INFO] got images: ");
+	print_filenames(image_names);
 #endif
-	
-    n_images = image_names->count;
+
+	n_images = image_names->count;
 
 	image_names->out_directory = create_out_directory(filepath);
-    if (!image_names->out_directory) {
+	if (!image_names->out_directory) {
 		free_image_filenames(image_names);
 		return 1;
 	}
 
 	char texture_name[] = "paper-texture.png";
-    char *texture_filepath;
+	char *texture_filepath;
 
 	pthread_t thread_id[n_threads];
 	thread_args args;
 
 	args.images = image_names;
 
-	args.texture = read_png_file(texture_name);
-    if (!args.texture) {
-        int n_chars;
 
-        n_chars = strlen(texture_name) + strlen(filepath) +2;
-        texture_filepath = malloc(n_chars * sizeof(char));
+	if (access(texture_name, F_OK) == 0) args.texture = read_png_file(texture_name);
+	else {
+		int n_chars;
 
-        snprintf(texture_filepath, n_chars, "%s/%s", filepath, texture_name);
-        args.texture = read_png_file(texture_filepath);
+		n_chars = strlen(texture_name) + strlen(filepath) +2;
+		texture_filepath = malloc(n_chars * sizeof(char));
 
-        free(texture_filepath);
-    }
+		snprintf(texture_filepath, n_chars, "%s/%s", filepath, texture_name);
 
-    if (!args.texture){
+		if (access(texture_filepath, F_OK) == -1) {
 			fprintf(stderr, "[ERROR] Missing texture image!\n");
 			free_image_filenames(image_names);	
+			free(texture_filepath);
 			return 1;
-    }
+		}
+		
+		args.texture = read_png_file(texture_filepath);
 
-    if (pthread_mutex_init(&lock, NULL) != 0){
-        fprintf(stderr, "[ERROR] Couldn't create mutex\n");
+		free(texture_filepath);
+	}
 
-        free(image_names);
-        gdImageDestroy(args.texture);
-        return 1;
-    }
-    
-    args.lock = &lock;
+	if (pthread_mutex_init(&lock, NULL) != 0){
+		fprintf(stderr, "[ERROR] Couldn't create mutex\n");
+
+		free(image_names);
+		gdImageDestroy(args.texture);
+		return 1;
+	}
+
+	args.lock = &lock;
 	for (int i = 0; i < n_threads; i++) {
 		pthread_create(&thread_id[i], NULL, &thread_process_images, &args);
 	}
@@ -111,12 +115,12 @@ int main(int argc, char **argv){
 
 	free_image_filenames(image_names);	
 	gdImageDestroy(args.texture);
-	
+
 	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
 	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
-	
+
 	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
 	write_to_csv(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
 
-    return 0;
+	return 0;
 }

@@ -93,7 +93,7 @@ void *thread_process_images(void *arg) {
 		if (i >= n_images) break;
 
         filename_chars = strlen(args->images->filenames[i]);
-        snprintf(out_file, outdir_chars + filename_chars +1, "%s/%s", args->images->out_directory, args->images->filenames[i]);
+        snprintf(out_file, outdir_chars + filename_chars + 2, "%s/%s", args->images->out_directory, args->images->filenames[i]);
 
 		if (access(out_file, F_OK) == 0) continue;
 
