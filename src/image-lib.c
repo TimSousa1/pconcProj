@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <time.h>
 
-#include <image-lib.h>
+#include "image-lib.h"
 /******************************************************************************
  * texture_image()
  *

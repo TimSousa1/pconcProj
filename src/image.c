@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <gd.h>
 
-#include <main.h>
-#include <image-lib.h>
+#include "main.h"
+#include "image-lib.h"
 
 int is_jpeg(char *filename){
     if (!filename) return 0;
@@ -29,7 +29,7 @@ int is_jpeg(char *filename){
 
     for (long unsigned int i = strlen(filename) - extensionJPEG_size; i < strlen(filename); i++){
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extension[i - strlen(filename) + extension_size]);
+        printf("[INFO] checking %c against %c\n", filename[i], extensionJPEG[i - strlen(filename) + extensionJPEG_size]);
 #endif
         if (filename[i] != extensionJPEG[i - strlen(filename) + extensionJPEG_size]) {
             jpegTrue = 0;
@@ -41,7 +41,7 @@ int is_jpeg(char *filename){
 
     for (long unsigned int i = strlen(filename) - extensionJPG_size; i < strlen(filename); i++){
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extension[i - strlen(filename) + extension_size]);
+        printf("[INFO] checking %c against %c\n", filename[i], extensionJPG[i - strlen(filename) + extensionJPG_size]);
 #endif
         if (filename[i] != extensionJPG[i - strlen(filename) + extensionJPG_size]) return 0;
     }

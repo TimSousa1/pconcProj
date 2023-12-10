@@ -7,8 +7,8 @@
 #include <time.h>
 #include <pthread.h>
 
-#include <main.h>
-#include <image-lib.h>
+#include "main.h"
+#include "image-lib.h"
 
 
 pthread_mutex_t lock;
