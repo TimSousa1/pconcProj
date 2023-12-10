@@ -51,41 +51,54 @@ int is_jpeg(char *filename){
 
 
 int image_index = 0;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 void *thread_process_images(void *arg) {
 
 	struct timespec start_time, end_time;
-
 	clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-	thread_resources *resources = (thread_resources *) arg;
+    int n_images, images_processed;
+	char out_file[256];
+
+    int outdir_chars;
+    int filename_chars;
+
+	gdImagePtr paper_texture;
 
 	thread_output *ret = malloc(sizeof(thread_output));
+    if (!ret) {
+        fprintf(stderr, "[ERROR] Couldn't alloc return value\n");
+        return NULL;
+    }
 
-	int n_images = resources->images->count;
-	int i, images_processed = 0;
-	char out_file[256];
-	gdImagePtr paper_texture = resources->texture;
+	thread_args *args = (thread_args *) arg;
+    pthread_mutex_t *lock = args->lock;
 
+	n_images = args->images->count;
+	images_processed = 0;
+
+	paper_texture = args->texture;
+
+    int i;
 	gdImagePtr image;
 	gdImagePtr image_tmp;
 
+    outdir_chars = strlen(args->images->out_directory);
 	do {
-		pthread_mutex_lock(&mutex);
+		pthread_mutex_lock(lock);
 		i = image_index++;
-		pthread_mutex_unlock(&mutex);
+		pthread_mutex_unlock(lock);
 
 		if (i >= n_images) break;
 
-		strcpy(out_file, resources->images->out_directory);
-        strcat(out_file, "/");
-        strcat(out_file, resources->images->filenames[i]);
+        filename_chars = strlen(args->images->filenames[i]);
+        snprintf(out_file, outdir_chars + filename_chars +1, "%s/%s", args->images->out_directory, args->images->filenames[i]);
 
 		if (access(out_file, F_OK) == 0) continue;
 
-		image = read_jpeg_file(resources->images->filenames_directory[i]);
+		image = read_jpeg_file(args->images->filenames_directory[i]);
+        if (!image) return NULL;
 
 		gdImageContrast(image, -20);
 		gdImageSmooth(image, 20);
@@ -96,7 +109,9 @@ void *thread_process_images(void *arg) {
 
         gdImageColor(image, 100, 60, 0, 0);
 
-		write_jpeg_file(image, out_file);
+		if (write_jpeg_file(image, out_file) == 0){
+            fprintf(stderr, "[ERROR] Couldn't save image!\n");
+        }
 		gdImageDestroy(image);	
 
 		images_processed++;
