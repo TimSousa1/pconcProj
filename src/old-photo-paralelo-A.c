@@ -110,7 +110,6 @@ int main(int argc, char **argv){
 	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
 	
 	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
-	write_to_csv(total_time, n_threads, filepath);
 
     return 0;
 }

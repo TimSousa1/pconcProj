@@ -7,7 +7,7 @@
 
 void free_names(char **names, int n_names);
 
-// filepath without final '/'
+
 image_filenames *get_filenames(char *filepath){
     if (!filepath) return NULL;
     char filename[strlen("/image-list.txt") + strlen(filepath) +1];

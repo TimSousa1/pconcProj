@@ -33,6 +33,6 @@ $(BUILDDIR):
 
 .PHONY : clean
 clean:
-	rm $(BUILDDIR)/*.o
+	rm -r $(BUILDDIR)
 	rm $(OUT_NAME)
 
