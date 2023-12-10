@@ -1,8 +1,10 @@
-#include "image-lib.h"
 #include <sys/stat.h>
 #include <dirent.h>
 #include <assert.h>
 #include <time.h>
+
+#include "image-lib.h"
+
 /******************************************************************************
  * texture_image()
  *
@@ -36,115 +38,13 @@ gdImagePtr  texture_image(gdImagePtr in_img, gdImagePtr texture_img){
 } 
 
 
-
-
-/******************************************************************************
- * smooth_image()
- *
- * Arguments: in - pointer to image
- * Returns: out - pointer to smoother image, or NULL in case of failure
- * Side-Effects: none
- *
- * Description: creates clone of image smoother
- *
- *****************************************************************************/
-gdImagePtr  smooth_image(gdImagePtr in_img){
-	
-	gdImagePtr out_img;
-	
-	out_img =  gdImageClone (in_img);
-	if (!out_img) {
-		return NULL;
-	}
-
-	int ret = gdImageSmooth(out_img, 20);
-
-
-	if (!out_img) {
-		return NULL;
-	}
-
-	return(out_img);		
-} 
-
-
-
-
-/******************************************************************************
- * contrast_image()
- *
- * Arguments: in - pointer to image
- * Returns: out - pointer to high contrast  image, or NULL in case of failure
- * Side-Effects: none
- *
- * Description: creates clone of image but its contrast reduced
- *
- *****************************************************************************/
-gdImagePtr  contrast_image(gdImagePtr in_img){
-	
-	gdImagePtr out_img;
-	
-	out_img =  gdImageClone (in_img);
-	if (!out_img) {
-		return NULL;
-	}
-
-	int ret = gdImageContrast(out_img, -20);
-
-
-	return(out_img);		
-} 
-
-
-
-/******************************************************************************
- * sepia_image()
- *
- * Arguments: in - pointer to image
- * Returns: out - pointer to sepia image, or NULL in case of failure
- * Side-Effects: none
- *
- * Description: creates clone of image but with sepia color
- *
- *****************************************************************************/
-gdImagePtr  sepia_image(gdImagePtr in_img){
-	
-	gdImagePtr out_img;
-	
-	out_img =  gdImageClone (in_img);
-	if (!out_img) {
-		return NULL;
-	}
-
-	int ret = gdImageColor(out_img, 100, 60, 0, 0);
-
-
-	return(out_img);		
-} 
-
-
-
-
-/******************************************************************************
- * read_png_file()
- *
- * Arguments: file_name - name of file with data for PNG image
- * Returns: img - the image read from file or NULL if failure to read
- * Side-Effects: none
- *
- * Description: reads a PNG image from a file
- *
- *****************************************************************************/
 gdImagePtr read_png_file(char * file_name){
 
 	FILE * fp;
 	gdImagePtr read_img;
 
 	fp = fopen(file_name, "rb");
-   	if (!fp) {
-        fprintf(stderr, "Can't read image %s\n", file_name);
-        return NULL;
-    }
+   	if (!fp) return NULL;
     read_img = gdImageCreateFromPng(fp);
     fclose(fp);
   	if (read_img == NULL) {

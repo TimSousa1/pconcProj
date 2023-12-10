@@ -1,44 +1,16 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "main.h"
+
+#include "old-photo-paralelo-A.h"
 #include "image-lib.h"
 
+void free_names(char **names, int n_names);
 
-char *create_out_directory(char *directory){
-    char *out_filepath;
-    out_filepath = malloc((strlen(directory) + strlen(OLD_PHOTO_DIR) +2) * sizeof(char));
-    if (!out_filepath) return NULL;
 
-    strcpy(out_filepath, directory);
-    strcat(out_filepath, "/");
-    strcat(out_filepath, OLD_PHOTO_DIR);
-
-    create_directory(out_filepath);
-    
-    return out_filepath;
-}
-
-void print_filenames(image_filenames *image_names){
-    if (!image_names) return;
-    for (int i = 0; i < image_names->count; i++){
-        printf("%s ", image_names->filenames_directory[i]);
-    }
-    printf("\n");
-}
-
-void free_names(char **names, int n_names){
-    if (!names) return;
-    for (int i = 0; i <= n_names; i++){
-        free(names[i]);
-    }
-    free(names);
-}
-
-// filepath without final '/'
 image_filenames *get_filenames(char *filepath){
     if (!filepath) return NULL;
-    char filename[strlen("/image-list.txt") + strlen(filepath) + 1];
+    char filename[strlen("/image-list.txt") + strlen(filepath) +1];
 
 #ifdef DEBUG
     printf("[INFO] checking char %c\n", filepath[strlen(filepath) -1]);
@@ -52,7 +24,10 @@ image_filenames *get_filenames(char *filepath){
 #endif
 
     FILE *fp = fopen(filename, "r");
-    if (!fp) return NULL;
+    if (!fp) {
+        fprintf(stderr, "[ERROR] no image-list.txt found!\n");
+        return NULL;
+    }
 
     char line[256];
     char **files_directory = NULL;
@@ -74,18 +49,26 @@ image_filenames *get_filenames(char *filepath){
     if (!files_directory) return NULL;
 
     image_names = malloc(n_files * sizeof(char*));
-    if (!image_names) return NULL;
+    if (!image_names) {
+        free(files_directory);
+        return NULL;
+    }
 
     rewind(fp);
 
+    int n_chars_dir, n_chars_img;
     for (int i = 0; fgets(line, sizeof(line), fp); i++){
-        files_directory[i] = calloc(strlen(line), sizeof(char));
+        
+        n_chars_dir = strlen(line) + strlen(filepath) +2;
+        files_directory[i] = malloc(n_chars_dir * sizeof(char));
+
         if (!files_directory[i]) {
             free_names(files_directory, i-1);
             free_names(image_names, i-1);
             return NULL;
         }
-        image_names[i] = calloc(strlen(line), sizeof(char));
+        n_chars_img = strlen(line) +1;
+        image_names[i] = malloc(n_chars_img * sizeof(char));
         if (!image_names[i]) {
             free_names(image_names, i-1);
             free_names(files_directory, i);
@@ -101,14 +84,13 @@ image_filenames *get_filenames(char *filepath){
             continue;
         }
 
-        strcpy(files_directory[i], filepath);
-        strcat(files_directory[i], "/");
-        strcat(files_directory[i], line);
-
+        snprintf(files_directory[i], n_chars_dir, "%s/%s", filepath, line);
         strcpy(image_names[i], line);
     }
 
-    image_filenames *images = malloc (sizeof(*images));
+    image_filenames *images;
+    images = malloc (sizeof(*images));
+
     if (!images){
         free_names(files_directory, n_files);
         return NULL;
@@ -121,5 +103,53 @@ image_filenames *get_filenames(char *filepath){
 
     fclose(fp);
     return images;
+}
+
+// returns NULL on fail
+char *create_out_directory(char *directory){
+    char *out_filepath;
+    int n_chars;
+
+    n_chars = strlen(directory) + strlen(OLD_PHOTO_DIR) +2;
+    out_filepath = malloc(n_chars * sizeof(char));
+    if (!out_filepath) return NULL;
+
+    snprintf(out_filepath, n_chars, "%s/%s", directory, OLD_PHOTO_DIR);
+    if (create_directory(out_filepath) == 0){
+        fprintf(stderr, "[ERROR] Couldn't create output directory\n");
+        free(out_filepath);
+        out_filepath = NULL;
+    }
+    return out_filepath;
+}
+
+#ifdef DEBUG
+void print_filenames(image_filenames *image_names){
+    if (!image_names) return;
+    for (int i = 0; i < image_names->count; i++){
+        printf("%s ", image_names->filenames_directory[i]);
+    }
+    printf("\n");
+}
+#endif
+
+// deletes all members of array till n_names (inclusive)
+void free_names(char **names, int n_names){
+    if (!names) return;
+
+    for (int i = 0; i <= n_names; i++){
+        free(names[i]);
+    }
+    free(names);
+}
+
+void free_image_filenames(image_filenames *images) {
+	if (!images) return;
+
+	free_names(images->filenames, images->count-1);
+	free_names(images->filenames_directory, images->count-1);
+
+	free(images->out_directory);
+	free(images);
 }
 
