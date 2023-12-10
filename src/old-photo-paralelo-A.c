@@ -7,7 +7,7 @@
 #include <time.h>
 #include <pthread.h>
 
-#include "main.h"
+#include "old-photo-paralelo-A.h"
 #include "image-lib.h"
 
 
