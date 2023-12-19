@@ -87,7 +87,7 @@ void *thread_contrast(void *arg){
         info.image = image;
         info.filename = out_file;
 
-        write(pipe_out, &info, sizeof(info));
+        write(pipe_out, &info, sizeof(img_info));
 #ifdef DEBUG
         printf("[CONTRAST] %s processed\n", info.filename);
 #endif
@@ -105,7 +105,7 @@ void *thread_smooth(void *arg){
 
     img_info info;
 
-    while (read(pipe_in, &info, sizeof(info)) > 0){
+    while (read(pipe_in, &info, sizeof(img_info)) > 0){
 		gdImageSmooth(info.image, 20);
         write(pipe_out, &info, sizeof(info));
 #ifdef DEBUG

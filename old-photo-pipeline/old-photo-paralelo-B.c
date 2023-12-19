@@ -55,8 +55,11 @@ int main(int argc, char **argv){
     thread_args args[n_threads]; 
     int pipes[n_threads][2];
 
+	for (int i = 0; i < n_threads; i++){
+		pipe(pipes[i]);
+	}
+
     for (int i = 0; i < n_threads; i++){
-        pipe(pipes[i]);
         args[i].pipe_read = pipes[i][READ];
         args[i].generic = NULL;
         if (i+1 >= n_threads) break;
