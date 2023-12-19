@@ -43,53 +43,62 @@ int main(int argc, char **argv){
 
 	out_directory = create_out_directory(filepath);
     if (!out_directory) {
-		// free_image_filenames(image_names);
+		free_image_filenames(image_names, count);
 		return 1;
 	}
 
 	char texture_name[] = "paper-texture.png";
-    char *texture_filepath;
+    char *texture_filepath = NULL;
 
 	pthread_t thread_id[n_threads];
-	thread_args args;
 
-    args.out_directory = out_directory;
+    thread_args args[n_threads]; 
+    int pipes[n_threads][2];
 
-	args.texture = read_png_file(texture_name);
-    if (!args.texture) {
+    for (int i = 0; i < n_threads; i++){
+        pipe(pipes[i]);
+        args[i].pipe_read = pipes[i][READ];
+        args[i].generic = NULL;
+        if (i+1 >= n_threads) break;
+        args[i].pipe_write = pipes[i+1][WRITE];
+    }
+
+    char *texture_filename = texture_name;
+
+    if (access(texture_name, F_OK) == -1) {
         int n_chars;
 
         n_chars = strlen(texture_name) + strlen(filepath) +2;
         texture_filepath = malloc(n_chars * sizeof(char));
 
         snprintf(texture_filepath, n_chars, "%s/%s", filepath, texture_name);
-        args.texture = read_png_file(texture_filepath);
 
-        free(texture_filepath);
-    }
-
-    if (!args.texture){
+        if (access(texture_filepath, F_OK) == -1){
 			fprintf(stderr, "[ERROR] Missing texture image!\n");
-			// free_image_filenames(image_names);	
+            free(texture_filepath);
+			free_image_filenames(image_names, count);	
 			return 1;
+        }
+
+        texture_filename = texture_filepath;
     }
 
-    int pipe_fd[2];
-    if (pipe(pipe_fd) != 0){
-        // fd
-        exit(1); // SOLVE MEM LEAKS!
-    }
+    args[contrast].generic = out_directory;
+    pthread_create(&thread_id[contrast], NULL, thread_contrast, &args[contrast]);
 
-    args.pipe_read = pipe_fd[0];
+    pthread_create(&thread_id[smooth], NULL, thread_smooth, &args[smooth]);
 
-	for (int i = 0; i < n_threads; i++) {
-		pthread_create(&thread_id[i], NULL, &thread_process_images, &args);
-	}
+    args[texture].generic = texture_filename;
+    pthread_create(&thread_id[texture], NULL, thread_texture, &args[texture]);
+
+    args[sepia].generic = out_directory;
+    pthread_create(&thread_id[sepia], NULL, thread_sepia, &args[sepia]);
 
     for (int i = 0; i < count; i++){
-        write(pipe_fd[1], &image_names[i], sizeof(*image_names));
+        write(pipes[contrast][WRITE], &image_names[i], sizeof(*image_names));
     }
-    close(pipe_fd[1]);
+
+    close(pipes[contrast][WRITE]);
 
 	void *ret;
 	thread_output *output;
@@ -101,19 +110,19 @@ int main(int argc, char **argv){
 		pthread_join(thread_id[i], &ret);
 		output = (thread_output *) ret;
 
-		thread_time[i] = output->time;
-		images_per_thread[i] = output->n_images_processed;
+//		thread_time[i] = output->time;
+//		images_per_thread[i] = output->n_images_processed;
 		free(output);
 	}
 
 	free_image_filenames(image_names, count);	
+    free(texture_filepath);
     free(out_directory);
-	gdImageDestroy(args.texture);
 	
-	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
-	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
+//	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
+//	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
 	
-	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
+//	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
 
     return 0;
 }
