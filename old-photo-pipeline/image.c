@@ -14,7 +14,7 @@ typedef struct {
     gdImagePtr image;
     char *filename;
 
-    // time taken?
+    // start and end times?
 } img_info;
 
 int is_jpeg(char *filename){
