@@ -6,12 +6,15 @@
 #include <unistd.h>
 #include <gd.h>
 
-#include "old-photo-paralelo-B.h"
+#include "old-photo-pipeline.h"
 #include "image-lib.h"
 
+// move to header file for times
 typedef struct {
     gdImagePtr image;
     char *filename;
+
+    // time taken?
 } img_info;
 
 int is_jpeg(char *filename){

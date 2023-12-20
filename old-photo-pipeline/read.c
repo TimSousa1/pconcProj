@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "old-photo-paralelo-B.h"
+#include "old-photo-pipeline.h"
 #include "image-lib.h"
 
 void free_names(char **names, int n_names);

@@ -19,7 +19,7 @@ BUILDDIR = build
 SRC := $(shell find . -name '*.c')
 OBJ := $(addprefix $(BUILDDIR)/,$(SRC:%.c=%.o))
 DEPS := $(shell find . -name '*.h')
-OUT_NAME = old-photo-paralelo-B
+OUT_NAME = old-photo-pipeline
 
 $(BUILDDIR)/%.o : %.c $(DEPS) | $(BUILDDIR)
 	$(CC) -c $< $(CFLAGS) $(LDLIBS) -o $@
