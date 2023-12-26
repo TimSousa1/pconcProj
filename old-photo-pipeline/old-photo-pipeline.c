@@ -19,13 +19,13 @@ int main(int argc, char **argv){
 	clock_gettime(CLOCK_MONOTONIC, &start_time_total);
 
     int count;
-    char *filepath = NULL;
+    char *dataset_dir = NULL;
     char *out_directory = NULL;
 
-    image_filenames *image_names; // array of images
+    image_filename_info *image_names; // array of images
 
-    filepath = argv[1];
-    image_names = get_filenames(filepath, &count);
+    dataset_dir = argv[1];
+    image_names = get_filenames(dataset_dir, &count);
 
     if (!image_names) return 1;
 
@@ -34,7 +34,7 @@ int main(int argc, char **argv){
     print_filenames(image_names, count);
 #endif
 	
-	out_directory = create_out_directory(filepath);
+	out_directory = create_out_directory(dataset_dir);
     if (!out_directory) {
 		free_image_filenames(image_names, count);
 		return 1;
@@ -64,10 +64,10 @@ int main(int argc, char **argv){
     if (access(texture_name, F_OK) == -1) {
         int n_chars;
 
-        n_chars = strlen(texture_name) + strlen(filepath) +2;
+        n_chars = strlen(texture_name) + strlen(dataset_dir) +2;
         texture_filepath = malloc(n_chars * sizeof(char));
 
-        snprintf(texture_filepath, n_chars, "%s/%s", filepath, texture_name);
+        snprintf(texture_filepath, n_chars, "%s/%s", dataset_dir, texture_name);
 
         if (access(texture_filepath, F_OK) == -1){
 			fprintf(stderr, "[ERROR] Missing texture image!\n");
@@ -79,15 +79,15 @@ int main(int argc, char **argv){
         texture_filename = texture_filepath;
     }
 
-    args[contrast].generic = out_directory;
+    args[contrast].generic = (void *) out_directory;
     pthread_create(&thread_id[contrast], NULL, thread_contrast, &args[contrast]);
 
     pthread_create(&thread_id[smooth], NULL, thread_smooth, &args[smooth]);
 
-    args[texture].generic = texture_filename;
+    args[texture].generic = (void *) texture_filename;
     pthread_create(&thread_id[texture], NULL, thread_texture, &args[texture]);
 
-    args[sepia].generic = out_directory;
+    args[sepia].generic = (void*) &count;
     pthread_create(&thread_id[sepia], NULL, thread_sepia, &args[sepia]);
 
     for (int i = 0; i < count; i++){
@@ -96,24 +96,29 @@ int main(int argc, char **argv){
 
     close(pipes[contrast][WRITE]);
 
-	void *ret;
-	thread_output *output;
 
-	for (int i = 0; i < N_THREADS; i++) {
-		pthread_join(thread_id[i], &ret);
-		output = (thread_output *) ret;
-
-		free(output);
+	for (int i = 0; i < N_THREADS-1; i++) {
+		pthread_join(thread_id[i], NULL);
 	}
 
-	free_image_filenames(image_names, count);	
-    free(texture_filepath);
+	void *ret;
+	img_info *output;
+    pthread_join(thread_id[sepia], &ret);
+    output = (img_info *) ret;
+
     free(out_directory);
+    free(texture_filepath);
 	
     clock_gettime(CLOCK_MONOTONIC, &end_time_total);
-    struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
-	
-//	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
 
+    write_timings(start_time_total, end_time_total, output, count, dataset_dir);
+
+    for (int i = 0; i < count; i++){
+        free(output[i].name_info.filename_full_path);
+        gdImageDestroy(output[i].image);
+    }
+    free(output);
+	free_image_filenames(image_names, count);	
+	
     return 0;
 }

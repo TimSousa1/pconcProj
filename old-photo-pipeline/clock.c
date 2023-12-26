@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "image-lib.h"
+#include "old-photo-pipeline.h"
 
 int count_digits(int number){
 	
@@ -15,53 +16,31 @@ int count_digits(int number){
 
 }
 
-void write_timings(struct timespec total_time, struct timespec *threads_time, int n_threads, int *images_per_thread, char *filepath, int n_images) {
+void write_timings(struct timespec start_time, struct timespec end_time, img_info *images, int n_images, char *dataset_dir) {
 	
-	char *file_name;
-	int len = strlen("/timing_.txt") + count_digits(n_threads) + strlen(filepath) + 1;
-	file_name = malloc(len * sizeof(char));
+	char *timings_filename_full_path;
+	int len = strlen("/timing_pipeline.txt") + strlen(dataset_dir) + 1;
 
-	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.txt", filepath, n_threads);
+	timings_filename_full_path = malloc(len * sizeof(char));
+	snprintf(timings_filename_full_path, sizeof(char) * len, "%s/timing_pipeline.txt", dataset_dir);
 	
-	FILE *fp = fopen(file_name, "w");	
+	FILE *fp = fopen(timings_filename_full_path, "w");
 	if (!fp) {
 #ifdef DEBUG
-		fprintf(stderr, "[ERROR] Can't create %s!\n", file_name);
+		fprintf(stderr, "[ERROR] Can't create %s!\n", timings_filename_full_path);
 #endif
 		return;
 	}
 	
-	fprintf(fp, "total %d %li.%li\n", n_images, total_time.tv_sec, total_time.tv_nsec);
+    for (int i = 0; i < n_images; i++) { 
+        struct timespec start = diff_timespec(&images[i].processing_start, &start_time);
+        struct timespec end = diff_timespec(&images[i].processing_end, &start_time);
 
-	for (int i = 0; i < n_threads; i++) { 
-		fprintf(fp, "Thread_%d: %d %li.%li\n", i, images_per_thread[i], threads_time[i].tv_sec, threads_time[i].tv_nsec);
-	}
-	free(file_name);	
+        fprintf(fp, "%s start %li.%li\n", images[i].name_info.image_name, start.tv_sec, start.tv_nsec);
+        fprintf(fp, "%s end %li.%li\n", images[i].name_info.image_name, end.tv_sec, end.tv_nsec);
+    }
+    struct timespec total = diff_timespec(&end_time, &start_time);
+	fprintf(fp, "total %li.%li\n", total.tv_sec, total.tv_nsec);
+	free(timings_filename_full_path);	
     fclose(fp);
 }
-
-
-// helper func for graphs
-void write_to_csv(struct timespec total_time, int n_threads, char *filepath) {
-	
-	char *file_name;
-	int len = strlen("/timing_.csv") + count_digits(n_threads) + strlen(filepath) + 1;
-	file_name = malloc(len * sizeof(char));
-
-	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.csv", filepath, n_threads);
-	
-	FILE *fp = fopen(file_name, "w");	
-	if (!fp) {
-#ifdef DEBUG
-		fprintf(stderr, "[ERROR] Can't create %s!\n", file_name);
-#endif
-		return;
-	}
-	
-    fprintf(fp, "threads,time\n");
-	fprintf(fp, "%d,%li.%li\n", n_threads, total_time.tv_sec, total_time.tv_nsec);
-
-	free(file_name);	
-    fclose(fp);
-}
-

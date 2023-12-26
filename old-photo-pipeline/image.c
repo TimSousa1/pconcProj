@@ -10,15 +10,9 @@
 #include "image-lib.h"
 
 // move to header file for times
-typedef struct {
-    gdImagePtr image;
-    char *filename;
 
-    // start and end times?
-} img_info;
-
-int is_jpeg(char *filename){
-    if (!filename) return 0;
+int is_jpeg(char *image_name){
+    if (!image_name) return 0;
 
     int extensionJPEG_size;
     int extensionJPG_size;
@@ -32,14 +26,14 @@ int is_jpeg(char *filename){
     int jpegTrue = 1;
 
 #ifdef DEBUG
-    printf("[INFO] got file %s\n", filename);
+    printf("[INFO] got file %s\n", image_name);
 #endif
 
-    for (long unsigned int i = strlen(filename) - extensionJPEG_size; i < strlen(filename); i++){
+    for (long unsigned int i = strlen(image_name) - extensionJPEG_size; i < strlen(image_name); i++){
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extensionJPEG[i - strlen(filename) + extensionJPEG_size]);
+        printf("[INFO] checking %c against %c\n", image_name[i], extensionJPEG[i - strlen(image_name) + extensionJPEG_size]);
 #endif
-        if (filename[i] != extensionJPEG[i - strlen(filename) + extensionJPEG_size]) {
+        if (image_name[i] != extensionJPEG[i - strlen(image_name) + extensionJPEG_size]) {
             jpegTrue = 0;
             break;
         }
@@ -47,11 +41,11 @@ int is_jpeg(char *filename){
 
     if (jpegTrue) return 1;
 
-    for (long unsigned int i = strlen(filename) - extensionJPG_size; i < strlen(filename); i++){
+    for (long unsigned int i = strlen(image_name) - extensionJPG_size; i < strlen(image_name); i++){
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extensionJPG[i - strlen(filename) + extensionJPG_size]);
+        printf("[INFO] checking %c against %c\n", image_name[i], extensionJPG[i - strlen(image_name) + extensionJPG_size]);
 #endif
-        if (filename[i] != extensionJPG[i - strlen(filename) + extensionJPG_size]) return 0;
+        if (image_name[i] != extensionJPG[i - strlen(image_name) + extensionJPG_size]) return 0;
     }
 
     return 1;
@@ -62,10 +56,10 @@ void *thread_contrast(void *arg){
     int pipe_in = args->pipe_read;
     int pipe_out = args->pipe_write;
 
-    char *out_dir = args->generic;
+    char *out_dir = (char *)args->generic;
     char *out_file = NULL; 
 
-    image_filenames image_name;
+    image_filename_info image_name;
     gdImagePtr image;
     img_info info;
 
@@ -74,25 +68,29 @@ void *thread_contrast(void *arg){
     outdir_chars = strlen(out_dir);
 
     while (read(pipe_in, &image_name, sizeof(image_name)) > 0){
-        filename_chars = strlen(image_name.filenames);
+        clock_gettime(CLOCK_MONOTONIC, &info.processing_start);
+
+        filename_chars = strlen(image_name.image_name);
         out_file = malloc(outdir_chars + filename_chars +2);
         if (!out_file){
             break; // solve later :)
         }
-        snprintf(out_file, outdir_chars + filename_chars +2, "%s/%s", out_dir, image_name.filenames);
+        snprintf(out_file, outdir_chars + filename_chars +2, "%s/%s", out_dir, image_name.image_name);
 
 		if (access(out_file, F_OK) == 0) continue;
 
-		image = read_jpeg_file(image_name.filenames_directory);
+		image = read_jpeg_file(image_name.filename_full_path);
         if (!image) break;
 
 		gdImageContrast(image, -20);
         info.image = image;
-        info.filename = out_file;
+        info.name_info.image_name = image_name.image_name;
+        info.name_info.filename_full_path = out_file;
+
 
         write(pipe_out, &info, sizeof(img_info));
 #ifdef DEBUG
-        printf("[CONTRAST] %s processed\n", info.filename);
+        printf("[CONTRAST] %s processed\n", info.name_info.image_name);
 #endif
     }
 
@@ -112,7 +110,7 @@ void *thread_smooth(void *arg){
 		gdImageSmooth(info.image, 20);
         write(pipe_out, &info, sizeof(info));
 #ifdef DEBUG
-        printf("[SMOOTH] %s processed\n", info.filename);
+        printf("[SMOOTH] %s processed\n", info.name_info.image_name);
 #endif
     }
 
@@ -126,7 +124,7 @@ void *thread_texture(void *arg){
     int pipe_in = args->pipe_read;
     int pipe_out = args->pipe_write;
 
-    char *texture_filename = args->generic;
+    char *texture_filename = (char *) args->generic;
 
     gdImagePtr image_tmp, texture;
     img_info info;
@@ -142,7 +140,7 @@ void *thread_texture(void *arg){
 
         write(pipe_out, &info, sizeof(info));
 #ifdef DEBUG
-        printf("[TEXTURE] %s processed\n", info.filename);
+        printf("[TEXTURE] %s processed\n", info.name_info.image_name);
 #endif
     }
     gdImageDestroy(texture);
@@ -155,89 +153,20 @@ void *thread_sepia(void *arg){
     thread_args *args = (thread_args*) arg;
     int pipe_in = args->pipe_read;
 
-    img_info info;
+    int n_images = *(int *) args->generic;
 
-    while (read(pipe_in, &info, sizeof(info)) > 0){
-        gdImageColor(info.image, 100, 60, 0, 0);
-		if (write_jpeg_file(info.image, info.filename) == 0){
-            fprintf(stderr, "[ERROR] Couldn't save image!\n");
+    img_info *info = malloc (n_images * sizeof(*info));
+
+    for (int i = 0; read(pipe_in, &info[i], sizeof(*info)) > 0 && i < n_images; i++){
+        gdImageColor(info[i].image, 100, 60, 0, 0);
+		if (write_jpeg_file(info[i].image, info[i].name_info.filename_full_path) == 0){
+            fprintf(stderr, "[ERROR] Couldn't save %s!\n", info[i].name_info.image_name);
         }
-		gdImageDestroy(info.image);	
-        free(info.filename);
+        clock_gettime(CLOCK_MONOTONIC, &info[i].processing_end);
 #ifdef DEBUG
-        printf("[SEPIA] %s processed\n", info.filename);
+        printf("[SEPIA] %s processed\n", info[i].name_info.filename_full_path);
 #endif
     }
 
-    return NULL;
+    return (void *) info;
 }
- 
-
-#if 0
-void *thread_process_images(void *arg) {
-
-	struct timespec start_time, end_time;
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
-
-    int images_processed;
-	char out_file[256];
-
-    int outdir_chars;
-    int filename_chars;
-
-	gdImagePtr paper_texture;
-
-	thread_output *ret = malloc(sizeof(thread_output));
-    if (!ret) {
-        fprintf(stderr, "[ERROR] Couldn't alloc return value\n");
-        return NULL;
-    }
-
-	thread_args *args = (thread_args *) arg;
-
-	images_processed = 0;
-
-	paper_texture = args->texture;
-
-	gdImagePtr image;
-	gdImagePtr image_tmp;
-
-    image_filenames image_name;
-
-    outdir_chars = strlen(args->out_directory);
-	while(read(args->pipe_read, &image_name, sizeof(image_name)) > 0){
-
-        filename_chars = strlen(image_name.filenames);
-        snprintf(out_file, outdir_chars + filename_chars +2, "%s/%s", args->out_directory, image_name.filenames);
-
-		if (access(out_file, F_OK) == 0) continue;
-
-		image = read_jpeg_file(image_name.filenames_directory);
-        if (!image) return NULL;
-
-		gdImageContrast(image, -20);
-		gdImageSmooth(image, 20);
-
-        image_tmp = image;
-		image = texture_image(image_tmp, paper_texture);
-        gdImageDestroy(image_tmp);
-
-        gdImageColor(image, 100, 60, 0, 0);
-
-		if (write_jpeg_file(image, out_file) == 0){
-            fprintf(stderr, "[ERROR] Couldn't save image!\n");
-        }
-		gdImageDestroy(image);	
-
-		images_processed++;
-	}
-
-	clock_gettime(CLOCK_MONOTONIC, &end_time);
-	
-	ret->time = diff_timespec(&end_time, &start_time);
-	ret->n_images_processed = images_processed;
-
-	return ret;
-
-}
-#endif
