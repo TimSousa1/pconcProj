@@ -1,3 +1,4 @@
+#include <bits/time.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,12 +25,12 @@ int is_jpeg(char *image_name){
     int jpegTrue = 1;
 
 #ifdef DEBUG
-    printf("[INFO] got file %s\n", filename);
+    printf("[INFO] got file %s\n", image_name);
 #endif
 
     for (long unsigned int i = strlen(image_name) - extensionJPEG_size; i < strlen(image_name); i++){
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extensionJPEG[i - strlen(filename) + extensionJPEG_size]);
+        printf("[INFO] checking %c against %c\n", image_name[i], extensionJPEG[i - strlen(image_name) + extensionJPEG_size]);
 #endif
         if (image_name[i] != extensionJPEG[i - strlen(image_name) + extensionJPEG_size]) {
             jpegTrue = 0;
@@ -41,7 +42,7 @@ int is_jpeg(char *image_name){
 
     for (long unsigned int i = strlen(image_name) - extensionJPG_size; i < strlen(image_name); i++){
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extensionJPG[i - strlen(filename) + extensionJPG_size]);
+        printf("[INFO] checking %c against %c\n", image_name[i], extensionJPG[i - strlen(image_name) + extensionJPG_size]);
 #endif
         if (image_name[i] != extensionJPG[i - strlen(image_name) + extensionJPG_size]) return 0;
     }
@@ -73,6 +74,7 @@ void *thread_process_images(void *arg) {
     }
 
 	thread_args *args = (thread_args *) arg;
+    int n_images = args->count;
 
 	images_processed = 0;
 
@@ -83,8 +85,14 @@ void *thread_process_images(void *arg) {
 
     image_filename_info image_name;
 
+    ret->image_times = malloc (n_images * sizeof(*ret->image_times));
+
     outdir_chars = strlen(args->out_directory);
-	while(read(args->pipe_read, &image_name, sizeof(image_name)) > 0){
+
+    struct timespec image_start, image_end;
+	for (int i = 0; read(args->pipe_read, &image_name, sizeof(image_name)) > 0 && i < n_images; i++){
+
+        clock_gettime(CLOCK_MONOTONIC, &image_start);
 
         filename_chars = strlen(image_name.image_name);
         snprintf(out_file, outdir_chars + filename_chars +2, "%s/%s", args->out_directory, image_name.image_name);
@@ -92,7 +100,11 @@ void *thread_process_images(void *arg) {
 		if (access(out_file, F_OK) == 0) continue;
 
 		image = read_jpeg_file(image_name.filename_full_path);
-        if (!image) return NULL;
+        if (!image) {
+            free(ret->image_times);
+            free(ret);
+            return NULL;
+        }
 
 		gdImageContrast(image, -20);
 		gdImageSmooth(image, 20);
@@ -108,12 +120,16 @@ void *thread_process_images(void *arg) {
         }
 		gdImageDestroy(image);	
 
+        clock_gettime(CLOCK_MONOTONIC, &image_end);
+
+        ret->image_times[i].time_to_process = diff_timespec(&image_end, &image_start);
+        ret->image_times[i].image_name = image_name.image_name;
 		images_processed++;
 	}
 
 	clock_gettime(CLOCK_MONOTONIC, &end_time);
 	
-	ret->time = diff_timespec(&end_time, &start_time);
+	ret->thread_time = diff_timespec(&end_time, &start_time);
 	ret->n_images_processed = images_processed;
 
 	return ret;

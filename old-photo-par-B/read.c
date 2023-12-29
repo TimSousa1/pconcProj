@@ -7,23 +7,22 @@
 
 void free_names(char **names, int n_names);
 
-
 image_filename_info *get_filenames(char *dataset_dir, int *count){
     if (!dataset_dir) return NULL;
-    char filename[strlen("/image-list.txt") + strlen(dataset_dir) +1];
+    char image_list_filename[strlen("/image-list.txt") + strlen(dataset_dir) +1];
 
 #ifdef DEBUG
-    printf("[INFO] checking char %c\n", filepath[strlen(filepath) -1]);
+    printf("[INFO] checking char %c\n", dataset_dir[strlen(dataset_dir) -1]);
 #endif
 
-    strcpy(filename, dataset_dir);
-    strcat(filename, "/image-list.txt");
+    strcpy(image_list_filename, dataset_dir);
+    strcat(image_list_filename, "/image-list.txt");
 
 #ifdef DEBUG
-    printf("[INFO] file list location: %s\n", filename);
+    printf("[INFO] file list location: %s\n", image_list_filename);
 #endif
 
-    FILE *fp = fopen(filename, "r");
+    FILE *fp = fopen(image_list_filename, "r");
     if (!fp) {
         fprintf(stderr, "[ERROR] no image-list.txt found!\n");
         return NULL;
@@ -41,7 +40,6 @@ image_filename_info *get_filenames(char *dataset_dir, int *count){
         n_files += is_jpeg(line);
     }
 
-    *count = n_files;
 
 #ifdef DEBUG
     printf("[INFO] got %i files!\n", n_files);
@@ -84,7 +82,7 @@ image_filename_info *get_filenames(char *dataset_dir, int *count){
         strcpy(images[i].image_name, line);
 
     }
-
+    *count = n_files;
     fclose(fp);
     return images;
 }
@@ -108,10 +106,10 @@ char *create_out_directory(char *dataset_dir){
 }
 
 #ifdef DEBUG
-void print_filenames(image_filenames *image_names, int count){
+void print_filenames(image_filename_info *image_names, int count){
     if (!image_names) return;
     for (int i = 0; i < count; i++){
-        printf("%s ", image_names[i].filenames_directory);
+        printf("%s ", image_names[i].filename_full_path);
     }
     printf("\n");
 }
