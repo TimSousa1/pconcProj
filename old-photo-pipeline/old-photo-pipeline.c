@@ -117,5 +117,6 @@ int main(int argc, char **argv){
     write_timings(start_time_total, end_time_total, output, count, dataset_dir);
 
 	free_image_infos(output, count);	
+    free(image_names);
     return 0;
 }
