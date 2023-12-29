@@ -13,8 +13,10 @@ typedef enum {
 } stage;
 
 typedef struct {
-    char *filename_full_path;    // has the directory included
-    char *image_name;            // just the image names
+    char *filename_full_path;                  // has the directory included
+    char *image_name;                          // just the image names
+
+    char *processed_image_filename_full_path;  // output image name
 } image_filename_info;
 
 typedef struct {
@@ -37,13 +39,14 @@ typedef struct thread_output {
 	int n_images_processed;
 } thread_output;
 
-image_filename_info *get_filenames(char *filepath, int *count);
+image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir);
 #ifdef DEBUG
 void print_filenames(image_filename_info*, int count);
 #endif
 int is_jpeg(char *image_name);
 
 void free_image_filenames(image_filename_info *images, int count);
+void free_image_infos(img_info *images, int count);
 
 void *thread_process_images(void *arg);
 

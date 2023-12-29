@@ -12,33 +12,35 @@
 #define N_THREADS 4
 
 int main(int argc, char **argv){
-    
+
 	if (argc != 2) return 1;
 	
 	struct timespec start_time_total, end_time_total;
 	clock_gettime(CLOCK_MONOTONIC, &start_time_total);
 
     int count;
-    char *dataset_dir = NULL;
-    char *out_directory = NULL;
+    char *dataset_dir = argv[1];
+    char *out_dir = NULL;
+
+	out_dir = create_out_directory(dataset_dir);
+    if (!out_dir) {
+		return 1;
+	}
 
     image_filename_info *image_names; // array of images
+    image_names = get_filenames(dataset_dir, &count, out_dir);
 
-    dataset_dir = argv[1];
-    image_names = get_filenames(dataset_dir, &count);
-
-    if (!image_names) return 1;
+    if (!image_names || count < 1) {
+        free(image_names);
+        free(out_dir);
+        return 1;
+    }
 
 #ifdef DEBUG
     printf("[INFO] got images: ");
     print_filenames(image_names, count);
 #endif
 	
-	out_directory = create_out_directory(dataset_dir);
-    if (!out_directory) {
-		free_image_filenames(image_names, count);
-		return 1;
-	}
 
 	char texture_name[] = "paper-texture.png";
     char *texture_filepath = NULL;
@@ -72,6 +74,7 @@ int main(int argc, char **argv){
         if (access(texture_filepath, F_OK) == -1){
 			fprintf(stderr, "[ERROR] Missing texture image!\n");
             free(texture_filepath);
+            free(out_dir);
 			free_image_filenames(image_names, count);	
 			return 1;
         }
@@ -79,7 +82,7 @@ int main(int argc, char **argv){
         texture_filename = texture_filepath;
     }
 
-    args[contrast].generic = (void *) out_directory;
+    args[contrast].generic = (void *) out_dir;
     pthread_create(&thread_id[contrast], NULL, thread_contrast, &args[contrast]);
 
     pthread_create(&thread_id[smooth], NULL, thread_smooth, &args[smooth]);
@@ -106,19 +109,13 @@ int main(int argc, char **argv){
     pthread_join(thread_id[sepia], &ret);
     output = (img_info *) ret;
 
-    free(out_directory);
+    free(out_dir);
     free(texture_filepath);
 	
     clock_gettime(CLOCK_MONOTONIC, &end_time_total);
 
     write_timings(start_time_total, end_time_total, output, count, dataset_dir);
 
-    for (int i = 0; i < count; i++){
-        free(output[i].name_info.filename_full_path);
-        gdImageDestroy(output[i].image);
-    }
-    free(output);
-	free_image_filenames(image_names, count);	
-	
+	free_image_infos(output, count);	
     return 0;
 }

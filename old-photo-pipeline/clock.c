@@ -32,7 +32,7 @@ void write_timings(struct timespec start_time, struct timespec end_time, img_inf
 		return;
 	}
 	
-    for (int i = 0; i < n_images; i++) { 
+    for (int i = 0; i < n_images && images[i].name_info.image_name; i++) { 
         struct timespec start = diff_timespec(&images[i].processing_start, &start_time);
         struct timespec end = diff_timespec(&images[i].processing_end, &start_time);
 
