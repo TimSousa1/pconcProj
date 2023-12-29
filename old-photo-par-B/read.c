@@ -1,35 +1,31 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "old-photo-paralelo-B.h"
 #include "image-lib.h"
 
 void free_names(char **names, int n_names);
 
-image_filename_info *get_filenames(char *dataset_dir, int *count){
-    if (!dataset_dir) return NULL;
-    char image_list_filename[strlen("/image-list.txt") + strlen(dataset_dir) +1];
+image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir){
+    if (!dataset_dir || !out_dir) return NULL; // if out_dir is NULL just disable the image_already_processed check
+    char image_list[strlen("/image-list.txt") + strlen(dataset_dir) +1];
+
+    strcpy(image_list, dataset_dir);
+    strcat(image_list, "/image-list.txt");
 
 #ifdef DEBUG
-    printf("[INFO] checking char %c\n", dataset_dir[strlen(dataset_dir) -1]);
+    printf("[INFO] image_list location: %s\n", image_list);
 #endif
 
-    strcpy(image_list_filename, dataset_dir);
-    strcat(image_list_filename, "/image-list.txt");
-
-#ifdef DEBUG
-    printf("[INFO] file list location: %s\n", image_list_filename);
-#endif
-
-    FILE *fp = fopen(image_list_filename, "r");
+    FILE *fp = fopen(image_list, "r");
     if (!fp) {
         fprintf(stderr, "[ERROR] no image-list.txt found!\n");
         return NULL;
     }
 
     char line[256];
-    
     image_filename_info *images = NULL;
 
     int n_files = 0;
@@ -40,21 +36,24 @@ image_filename_info *get_filenames(char *dataset_dir, int *count){
         n_files += is_jpeg(line);
     }
 
-
 #ifdef DEBUG
-    printf("[INFO] got %i files!\n", n_files);
+    printf("[INFO] found %i files!\n", n_files);
 #endif
 
     images = calloc(n_files, sizeof(*images));
     if (!images) return NULL;
 
     rewind(fp);
+    int filename_chars;
+    int outdir_chars = strlen(out_dir);
 
-    int n_chars_dir, n_chars_img;
+    char *out_file;
+
+    int n_chars_filename_full_path, n_chars_img;
     for (int i = 0; fgets(line, sizeof(line), fp); i++){
         
-        n_chars_dir = strlen(line) + strlen(dataset_dir) +2;
-        images[i].filename_full_path = malloc(n_chars_dir * sizeof(char));
+        n_chars_filename_full_path = strlen(line) + strlen(dataset_dir) +2;
+        images[i].filename_full_path = malloc(n_chars_filename_full_path * sizeof(char));
 
         if (!images[i].filename_full_path) {
             free_image_filenames(images, n_files);
@@ -78,11 +77,38 @@ image_filename_info *get_filenames(char *dataset_dir, int *count){
             continue;
         }
 
-        snprintf(images[i].filename_full_path, n_chars_dir, "%s/%s", dataset_dir, line);
-        strcpy(images[i].image_name, line);
 
+        snprintf(images[i].filename_full_path, n_chars_filename_full_path, "%s/%s", dataset_dir, line);
+        strcpy(images[i].image_name , line);
+
+        filename_chars = strlen(images[i].image_name);
+        out_file = malloc(outdir_chars + filename_chars +2);
+        if (!out_file){
+            free_image_filenames(images, n_files);
+            fclose(fp);
+            return NULL;
+        }
+
+        snprintf(out_file, outdir_chars + filename_chars +2, "%s/%s", out_dir, images[i].image_name);
+
+        if (access(out_file, F_OK) == 0) {
+#ifdef DEBUG
+            fprintf(stdout, "[INFO] file %s already exists.. skipping..\n", out_file);
+#endif
+            free(out_file);
+            free(images[i].image_name);
+            free(images[i].filename_full_path);
+            i--;
+            n_files--;
+            continue;
+        }
+        images[i].processed_image_filename_full_path = out_file;
     }
+
     *count = n_files;
+#ifdef DEBUG
+    printf("[INFO] %d files for processing\n", n_files);
+#endif
     fclose(fp);
     return images;
 }
@@ -122,6 +148,7 @@ void free_image_filenames(image_filename_info *images, int count) {
     for (int i = 0; i < count; i++){
         free(images[i].image_name);
         free(images[i].filename_full_path);
+        free(images[i].processed_image_filename_full_path);
     }
 
 	free(images);

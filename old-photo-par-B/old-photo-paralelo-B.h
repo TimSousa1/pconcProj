@@ -5,8 +5,10 @@
 #define OLD_PHOTO_DIR "old_photo_PAR_B"
 
 typedef struct {
-    char *filename_full_path; // has the directory included
-    char *image_name;           // just the image names
+    char *filename_full_path;                    // has the directory included
+    char *image_name;                            // just the image names
+
+    char *processed_image_filename_full_path;    // path of the outputted image
 } image_filename_info;
 
 typedef struct {
@@ -29,7 +31,7 @@ typedef struct thread_output {
 	int n_images_processed;
 } thread_output;
 
-image_filename_info *get_filenames(char *dataset_dir, int *count);
+image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir);
 #ifdef DEBUG
 void print_filenames(image_filename_info*, int count);
 #endif

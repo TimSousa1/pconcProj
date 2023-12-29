@@ -29,24 +29,31 @@ int is_jpeg(char *image_name){
 #endif
 
     for (long unsigned int i = strlen(image_name) - extensionJPEG_size; i < strlen(image_name); i++){
-#ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", image_name[i], extensionJPEG[i - strlen(image_name) + extensionJPEG_size]);
-#endif
         if (image_name[i] != extensionJPEG[i - strlen(image_name) + extensionJPEG_size]) {
             jpegTrue = 0;
             break;
         }
     }
 
-    if (jpegTrue) return 1;
-
-    for (long unsigned int i = strlen(image_name) - extensionJPG_size; i < strlen(image_name); i++){
+    if (jpegTrue) {
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", image_name[i], extensionJPG[i - strlen(image_name) + extensionJPG_size]);
+        printf("[INFO] %s is a jpeg\n", image_name);
 #endif
-        if (image_name[i] != extensionJPG[i - strlen(image_name) + extensionJPG_size]) return 0;
+        return 1;
     }
 
+    for (long unsigned int i = strlen(image_name) - extensionJPG_size; i < strlen(image_name); i++){
+        if (image_name[i] != extensionJPG[i - strlen(image_name) + extensionJPG_size]) {
+#ifdef DEBUG
+        printf("[INFO] %s is NOT a jpeg\n", image_name);
+#endif
+            return 0;
+        }
+    }
+
+#ifdef DEBUG
+        printf("[INFO] %s is a jpeg\n", image_name);
+#endif
     return 1;
 }
 
@@ -60,10 +67,6 @@ void *thread_process_images(void *arg) {
 	clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     int images_processed;
-	char out_file[256];
-
-    int outdir_chars;
-    int filename_chars;
 
 	gdImagePtr paper_texture;
 
@@ -87,17 +90,10 @@ void *thread_process_images(void *arg) {
 
     ret->image_times = malloc (n_images * sizeof(*ret->image_times));
 
-    outdir_chars = strlen(args->out_directory);
-
     struct timespec image_start, image_end;
 	for (int i = 0; read(args->pipe_read, &image_name, sizeof(image_name)) > 0 && i < n_images; i++){
 
         clock_gettime(CLOCK_MONOTONIC, &image_start);
-
-        filename_chars = strlen(image_name.image_name);
-        snprintf(out_file, outdir_chars + filename_chars +2, "%s/%s", args->out_directory, image_name.image_name);
-
-		if (access(out_file, F_OK) == 0) continue;
 
 		image = read_jpeg_file(image_name.filename_full_path);
         if (!image) {
@@ -115,7 +111,7 @@ void *thread_process_images(void *arg) {
 
         gdImageColor(image, 100, 60, 0, 0);
 
-		if (write_jpeg_file(image, out_file) == 0){
+		if (write_jpeg_file(image, image_name.processed_image_filename_full_path) == 0){
             fprintf(stderr, "[ERROR] Couldn't save image!\n");
         }
 		gdImageDestroy(image);	
