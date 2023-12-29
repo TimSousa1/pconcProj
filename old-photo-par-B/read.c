@@ -8,15 +8,15 @@
 void free_names(char **names, int n_names);
 
 
-image_filenames *get_filenames(char *filepath, int *count){
-    if (!filepath) return NULL;
-    char filename[strlen("/image-list.txt") + strlen(filepath) +1];
+image_filename_info *get_filenames(char *dataset_dir, int *count){
+    if (!dataset_dir) return NULL;
+    char filename[strlen("/image-list.txt") + strlen(dataset_dir) +1];
 
 #ifdef DEBUG
     printf("[INFO] checking char %c\n", filepath[strlen(filepath) -1]);
 #endif
 
-    strcpy(filename, filepath);
+    strcpy(filename, dataset_dir);
     strcat(filename, "/image-list.txt");
 
 #ifdef DEBUG
@@ -31,7 +31,7 @@ image_filenames *get_filenames(char *filepath, int *count){
 
     char line[256];
     
-    image_filenames *images = NULL;
+    image_filename_info *images = NULL;
 
     int n_files = 0;
     while(fgets(line, sizeof(line), fp)) {
@@ -55,17 +55,17 @@ image_filenames *get_filenames(char *filepath, int *count){
     int n_chars_dir, n_chars_img;
     for (int i = 0; fgets(line, sizeof(line), fp); i++){
         
-        n_chars_dir = strlen(line) + strlen(filepath) +2;
-        images[i].filenames_directory = malloc(n_chars_dir * sizeof(char));
+        n_chars_dir = strlen(line) + strlen(dataset_dir) +2;
+        images[i].filename_full_path = malloc(n_chars_dir * sizeof(char));
 
-        if (!images[i].filenames_directory) {
+        if (!images[i].filename_full_path) {
             free_image_filenames(images, n_files);
             fclose(fp);
             return NULL;
         }
         n_chars_img = strlen(line) +1;
-        images[i].filenames = malloc(n_chars_img * sizeof(char));
-        if (!images[i].filenames) {
+        images[i].image_name = malloc(n_chars_img * sizeof(char));
+        if (!images[i].image_name) {
             free_image_filenames(images, n_files);
             fclose(fp);
             return NULL;
@@ -80,8 +80,8 @@ image_filenames *get_filenames(char *filepath, int *count){
             continue;
         }
 
-        snprintf(images[i].filenames_directory, n_chars_dir, "%s/%s", filepath, line);
-        strcpy(images[i].filenames, line);
+        snprintf(images[i].filename_full_path, n_chars_dir, "%s/%s", dataset_dir, line);
+        strcpy(images[i].image_name, line);
 
     }
 
@@ -90,15 +90,15 @@ image_filenames *get_filenames(char *filepath, int *count){
 }
 
 // returns NULL on fail
-char *create_out_directory(char *directory){
+char *create_out_directory(char *dataset_dir){
     char *out_filepath;
     int n_chars;
 
-    n_chars = strlen(directory) + strlen(OLD_PHOTO_DIR) +2;
+    n_chars = strlen(dataset_dir) + strlen(OLD_PHOTO_DIR) +2;
     out_filepath = malloc(n_chars * sizeof(char));
     if (!out_filepath) return NULL;
 
-    snprintf(out_filepath, n_chars, "%s/%s", directory, OLD_PHOTO_DIR);
+    snprintf(out_filepath, n_chars, "%s/%s", dataset_dir, OLD_PHOTO_DIR);
     if (create_directory(out_filepath) == 0){
         fprintf(stderr, "[ERROR] Couldn't create output directory\n");
         free(out_filepath);
@@ -118,12 +118,12 @@ void print_filenames(image_filenames *image_names, int count){
 #endif
 
 
-void free_image_filenames(image_filenames *images, int count) {
+void free_image_filenames(image_filename_info *images, int count) {
 	if (!images) return;
 
     for (int i = 0; i < count; i++){
-        free(images[i].filenames);
-        free(images[i].filenames_directory);
+        free(images[i].image_name);
+        free(images[i].filename_full_path);
     }
 
 	free(images);

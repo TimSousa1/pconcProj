@@ -1,4 +1,3 @@
-#include <bits/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,16 +21,16 @@ int main(int argc, char **argv){
 	int n_threads;
     int n_images;
     int count;
-    char *filepath = NULL;
+    char *dataset_dir = NULL;
     char *out_directory = NULL;
 
-    image_filenames *image_names; // array of images
+    image_filename_info *image_names; // array of images
 
     n_threads = atoi(argv[2]);
 	if (n_threads <= 0) return 1;
 
-    filepath = argv[1];
-    image_names = get_filenames(filepath, &count);
+    dataset_dir = argv[1];
+    image_names = get_filenames(dataset_dir, &count);
 
     if (!image_names) return 1;
 
@@ -42,7 +41,7 @@ int main(int argc, char **argv){
 	
     n_images = count;
 
-	out_directory = create_out_directory(filepath);
+	out_directory = create_out_directory(dataset_dir);
     if (!out_directory) {
 		// free_image_filenames(image_names);
 		return 1;
@@ -60,10 +59,10 @@ int main(int argc, char **argv){
     if (!args.texture) {
         int n_chars;
 
-        n_chars = strlen(texture_name) + strlen(filepath) +2;
+        n_chars = strlen(texture_name) + strlen(dataset_dir) +2;
         texture_filepath = malloc(n_chars * sizeof(char));
 
-        snprintf(texture_filepath, n_chars, "%s/%s", filepath, texture_name);
+        snprintf(texture_filepath, n_chars, "%s/%s", dataset_dir, texture_name);
         args.texture = read_png_file(texture_filepath);
 
         free(texture_filepath);
@@ -114,7 +113,7 @@ int main(int argc, char **argv){
 	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
 	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
 	
-	write_timings(total_time, thread_time, n_threads, images_per_thread, filepath, n_images);
+	write_timings(total_time, thread_time, n_threads, images_per_thread, dataset_dir, n_images);
 
     return 0;
 }
