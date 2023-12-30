@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]; then
-    echo "usage: ./run.sh <datasets_folder> <max_threads>"
+if [ $# -ne 1 ]; then
+    echo "usage: ./run.sh <datasets_folder>"
     exit 1
 fi
 
@@ -10,14 +10,11 @@ do
     echo "rm $folder/*.csv"
     rm $folder/*.csv
 
-    for ((i=1; i<=$2; i*=2))
-    do
-        echo "rm -r $folder/old_photo_PAR_B"
-        rm -r $folder/old_photo_PAR_A
+    echo "rm -r $folder/old_photo_PIPELINE"
+    rm -r $folder/old_photo_PIPELINE
 
-        echo "./old-photo-paralelo-B $folder $i"
-        ./old-photo-paralelo-A $folder $i
-    done
+    echo "./old-photo-pipeline $folder $i"
+    ./old-photo-pipeline $folder $i
 
     echo "awk '(NR == 1) || (FNR > 1)' $folder/*.csv > $folder.csv"
     awk '(NR == 1) || (FNR > 1)' $folder/*.csv > $folder.csv

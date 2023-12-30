@@ -51,5 +51,7 @@ void *thread_texture (void *arg);
 void *thread_sepia   (void *arg);
 
 char *create_out_directory(char *directory);
+
 void write_timings(struct timespec start_time, struct timespec end_time, img_info *images, int n_images, char *dataset_dir);
+void write_to_csv(struct timespec start_time, struct timespec end_time, char *dataset_dir);
 #endif

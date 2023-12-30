@@ -43,3 +43,25 @@ void write_timings(struct timespec start_time, struct timespec end_time, img_inf
 	free(timings_filename_full_path);	
     fclose(fp);
 }
+
+void write_to_csv(struct timespec start_time, struct timespec end_time, char *dataset_dir) {
+	
+	char *timings_filename_full_path;
+	int len = strlen("/timing_pipeline.csv") + strlen(dataset_dir) + 1;
+
+	timings_filename_full_path = malloc(len * sizeof(char));
+	snprintf(timings_filename_full_path, sizeof(char) * len, "%s/timing_pipeline.csv", dataset_dir);
+	
+	FILE *fp = fopen(timings_filename_full_path, "w");
+	if (!fp) {
+#ifdef DEBUG
+		fprintf(stderr, "[ERROR] Can't create %s!\n", timings_filename_full_path);
+#endif
+		return;
+	}
+	
+    struct timespec total = diff_timespec(&end_time, &start_time);
+	fprintf(fp, "%li.%li\n", total.tv_sec, total.tv_nsec);
+	free(timings_filename_full_path);	
+    fclose(fp);
+}
