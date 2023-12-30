@@ -19,10 +19,9 @@ int main(int argc, char **argv){
 	clock_gettime(CLOCK_MONOTONIC, &start_time_total);
 
 	int n_threads;
-    int n_images;
     int count;
     char *dataset_dir = NULL;
-    char *out_directory = NULL;
+    char *out_dir = NULL;
 
     image_filename_info *image_names; // array of images
 
@@ -30,22 +29,27 @@ int main(int argc, char **argv){
 	if (n_threads <= 0) return 1;
 
     dataset_dir = argv[1];
-    image_names = get_filenames(dataset_dir, &count);
 
-    if (!image_names) return 1;
+	out_dir = create_out_directory(dataset_dir);
+    if (!out_dir) {
+		return 1;
+	}
+
+    image_names = get_filenames(dataset_dir, &count, out_dir);
+
+    if (!image_names || count < 1) {
+#ifdef DEBUG
+        printf("[INFO] all images already processed.. exiting..\n");
+#endif
+        free(out_dir);
+        return 1;
+    }
 
 #ifdef DEBUG
     printf("[INFO] got images: ");
     print_filenames(image_names, count);
 #endif
 	
-    n_images = count;
-
-	out_directory = create_out_directory(dataset_dir);
-    if (!out_directory) {
-		// free_image_filenames(image_names);
-		return 1;
-	}
 
 	char texture_name[] = "paper-texture.png";
     char *texture_filepath;
@@ -53,7 +57,8 @@ int main(int argc, char **argv){
 	pthread_t thread_id[n_threads];
 	thread_args args;
 
-    args.out_directory = out_directory;
+    args.out_directory = out_dir;
+    args.count = count;
 
 	args.texture = read_png_file(texture_name);
     if (!args.texture) {
@@ -70,14 +75,16 @@ int main(int argc, char **argv){
 
     if (!args.texture){
 			fprintf(stderr, "[ERROR] Missing texture image!\n");
-			// free_image_filenames(image_names);	
+			free_image_filenames(image_names, count);	
+            free(out_dir);
 			return 1;
     }
 
     int pipe_fd[2];
     if (pipe(pipe_fd) != 0){
-        // fd
-        exit(1); // SOLVE MEM LEAKS!
+        free_image_filenames(image_names, count);
+        free(out_dir);
+        exit(1);
     }
 
     args.pipe_read = pipe_fd[0];
@@ -92,28 +99,28 @@ int main(int argc, char **argv){
     close(pipe_fd[1]);
 
 	void *ret;
-	thread_output *output;
+	thread_output **outputs = malloc(n_threads * sizeof(*outputs)); // avoiding AVL
 
-	struct timespec thread_time[n_threads];
-
-	int images_per_thread[n_threads];
 	for (int i = 0; i < n_threads; i++) {
 		pthread_join(thread_id[i], &ret);
-		output = (thread_output *) ret;
-
-		thread_time[i] = output->time;
-		images_per_thread[i] = output->n_images_processed;
-		free(output);
+		outputs[i] = (thread_output *) ret;
 	}
 
-	free_image_filenames(image_names, count);	
-    free(out_directory);
+    free(out_dir);
 	gdImageDestroy(args.texture);
 	
 	clock_gettime(CLOCK_MONOTONIC, &end_time_total);
 	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
 	
-	write_timings(total_time, thread_time, n_threads, images_per_thread, dataset_dir, n_images);
+	write_timings(dataset_dir, total_time, outputs, count, n_threads);
+	write_to_csv(dataset_dir, total_time, n_threads);
 
+	free_image_filenames(image_names, count);	
+
+    for (int i = 0; i < n_threads; i++){
+        free(outputs[i]->image_times);
+        free(outputs[i]);
+    }
+    free(outputs);
     return 0;
 }

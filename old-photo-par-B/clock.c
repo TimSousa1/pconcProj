@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "image-lib.h"
+#include "old-photo-paralelo-B.h"
 
 int count_digits(int number){
 	
@@ -15,13 +16,13 @@ int count_digits(int number){
 
 }
 
-void write_timings(struct timespec total_time, struct timespec *threads_time, int n_threads, int *images_per_thread, char *filepath, int n_images) {
+void write_timings(char *dataset_dir, struct timespec total_time, thread_output **thread_profiles, int n_images, int n_threads) {
 	
 	char *file_name;
-	int len = strlen("/timing_.txt") + count_digits(n_threads) + strlen(filepath) + 1;
+	int len = strlen("/timing_.txt") + count_digits(n_threads) + strlen(dataset_dir) + 1;
 	file_name = malloc(len * sizeof(char));
 
-	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.txt", filepath, n_threads);
+	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.txt", dataset_dir, n_threads);
 	
 	FILE *fp = fopen(file_name, "w");	
 	if (!fp) {
@@ -31,24 +32,29 @@ void write_timings(struct timespec total_time, struct timespec *threads_time, in
 		return;
 	}
 	
-	fprintf(fp, "total %d %li.%li\n", n_images, total_time.tv_sec, total_time.tv_nsec);
 
 	for (int i = 0; i < n_threads; i++) { 
-		fprintf(fp, "Thread_%d: %d %li.%li\n", i, images_per_thread[i], threads_time[i].tv_sec, threads_time[i].tv_nsec);
+        for (int j = 0; j < thread_profiles[i]->n_images_processed; j++){
+            image_time tmp = thread_profiles[i]->image_times[j];
+            fprintf(fp, "%s %li.%li\n", tmp.image_name, tmp.time_to_process.tv_sec, tmp.time_to_process.tv_nsec);
+        }
 	}
+    for (int i = 0; i < n_threads; i++){
+        fprintf(fp, "thread_%d %d %li.%li\n", i, thread_profiles[i]->n_images_processed, 
+                thread_profiles[i]->thread_time.tv_sec, thread_profiles[i]->thread_time.tv_nsec);
+    }
+	fprintf(fp, "total %d %li.%li\n", n_images, total_time.tv_sec, total_time.tv_nsec);
 	free(file_name);	
     fclose(fp);
 }
 
 
-// helper func for graphs
-void write_to_csv(struct timespec total_time, int n_threads, char *filepath) {
-	
+void write_to_csv(char *dataset_dir, struct timespec total_time, int n_threads) {
 	char *file_name;
-	int len = strlen("/timing_.csv") + count_digits(n_threads) + strlen(filepath) + 1;
+	int len = strlen("/timing_.csv") + count_digits(n_threads) + strlen(dataset_dir) + 1;
 	file_name = malloc(len * sizeof(char));
 
-	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.csv", filepath, n_threads);
+	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.csv", dataset_dir, n_threads);
 	
 	FILE *fp = fopen(file_name, "w");	
 	if (!fp) {
@@ -57,11 +63,9 @@ void write_to_csv(struct timespec total_time, int n_threads, char *filepath) {
 #endif
 		return;
 	}
-	
-    fprintf(fp, "threads,time\n");
+    fprintf(fp, "n_threads,time\n");
 	fprintf(fp, "%d,%li.%li\n", n_threads, total_time.tv_sec, total_time.tv_nsec);
 
 	free(file_name);	
     fclose(fp);
 }
-

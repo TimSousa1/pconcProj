@@ -1,3 +1,4 @@
+#include <bits/time.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,44 +10,29 @@
 #include "old-photo-paralelo-B.h"
 #include "image-lib.h"
 
-int is_jpeg(char *image_name){
-    if (!image_name) return 0;
+int check_extension(const char *filename, const char *extension){
+    const int filenameLength = strlen(filename);
+    const int extensionLength = strlen(extension);
 
-    int extensionJPEG_size;
-    int extensionJPG_size;
+    const int length_diff = filenameLength - extensionLength;
 
-    char extensionJPEG[] = ".jpeg";
-    char extensionJPG[] = ".jpg";
-
-    extensionJPEG_size = strlen(extensionJPEG);
-    extensionJPG_size = strlen(extensionJPG);
-
-    int jpegTrue = 1;
-
+    for (int i = length_diff; i < filenameLength; i++){
+        if (filename[i] != extension[i - filenameLength + extensionLength]) {
 #ifdef DEBUG
-    printf("[INFO] got file %s\n", filename);
+            printf("[INFO] file %s is NOT a %s\n", filename, extension);
 #endif
-
-    for (long unsigned int i = strlen(image_name) - extensionJPEG_size; i < strlen(image_name); i++){
-#ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extensionJPEG[i - strlen(filename) + extensionJPEG_size]);
-#endif
-        if (image_name[i] != extensionJPEG[i - strlen(image_name) + extensionJPEG_size]) {
-            jpegTrue = 0;
-            break;
+            return 0;
         }
     }
-
-    if (jpegTrue) return 1;
-
-    for (long unsigned int i = strlen(image_name) - extensionJPG_size; i < strlen(image_name); i++){
 #ifdef DEBUG
-        printf("[INFO] checking %c against %c\n", filename[i], extensionJPG[i - strlen(filename) + extensionJPG_size]);
+            printf("[INFO] file %s is a %s\n", filename, extension);
 #endif
-        if (image_name[i] != extensionJPG[i - strlen(image_name) + extensionJPG_size]) return 0;
-    }
-
     return 1;
+}
+
+int is_jpeg(const char *image_name){
+    if (!image_name) return 0;
+    return (check_extension(image_name, ".jpeg") || check_extension(image_name, ".jpg"));
 }
 
 
@@ -59,10 +45,6 @@ void *thread_process_images(void *arg) {
 	clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     int images_processed;
-	char out_file[256];
-
-    int outdir_chars;
-    int filename_chars;
 
 	gdImagePtr paper_texture;
 
@@ -73,6 +55,7 @@ void *thread_process_images(void *arg) {
     }
 
 	thread_args *args = (thread_args *) arg;
+    int n_images = args->count;
 
 	images_processed = 0;
 
@@ -83,16 +66,19 @@ void *thread_process_images(void *arg) {
 
     image_filename_info image_name;
 
-    outdir_chars = strlen(args->out_directory);
-	while(read(args->pipe_read, &image_name, sizeof(image_name)) > 0){
+    ret->image_times = malloc (n_images * sizeof(*ret->image_times));
 
-        filename_chars = strlen(image_name.image_name);
-        snprintf(out_file, outdir_chars + filename_chars +2, "%s/%s", args->out_directory, image_name.image_name);
+    struct timespec image_start, image_end;
+	for (int i = 0; read(args->pipe_read, &image_name, sizeof(image_name)) > 0 && i < n_images; i++){
 
-		if (access(out_file, F_OK) == 0) continue;
+        clock_gettime(CLOCK_MONOTONIC, &image_start);
 
-		image = read_jpeg_file(image_name.filename_full_path);
-        if (!image) return NULL;
+		image = read_jpeg_file(image_name.image_path);
+        if (!image) {
+            free(ret->image_times);
+            free(ret);
+            return NULL;
+        }
 
 		gdImageContrast(image, -20);
 		gdImageSmooth(image, 20);
@@ -103,17 +89,20 @@ void *thread_process_images(void *arg) {
 
         gdImageColor(image, 100, 60, 0, 0);
 
-		if (write_jpeg_file(image, out_file) == 0){
+		if (write_jpeg_file(image, image_name.processed_image_path) == 0){
             fprintf(stderr, "[ERROR] Couldn't save image!\n");
-        }
-		gdImageDestroy(image);	
+        } gdImageDestroy(image);	
 
+        clock_gettime(CLOCK_MONOTONIC, &image_end);
+
+        ret->image_times[i].time_to_process = diff_timespec(&image_end, &image_start);
+        ret->image_times[i].image_name = image_name.image_name;
 		images_processed++;
 	}
 
 	clock_gettime(CLOCK_MONOTONIC, &end_time);
 	
-	ret->time = diff_timespec(&end_time, &start_time);
+	ret->thread_time = diff_timespec(&end_time, &start_time);
 	ret->n_images_processed = images_processed;
 
 	return ret;
