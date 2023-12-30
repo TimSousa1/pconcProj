@@ -4,19 +4,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
 #include "old-photo-pipeline.h"
 #include "image-lib.h"
 
-void free_names(char **names, int n_names);
 
 image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir){
     if (!dataset_dir || !out_dir) return NULL; // if out_dir is NULL just disable the image_already_processed check
     char image_list[strlen("/image-list.txt") + strlen(dataset_dir) +1];
-
-#ifdef DEBUG
-    printf("[INFO] checking char %c\n", dataset_dir[strlen(dataset_dir) -1]);
-#endif
 
     strcpy(image_list, dataset_dir);
     strcat(image_list, "/image-list.txt");
@@ -40,7 +34,7 @@ image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir)
         if (line[strlen(line)-1] == '\n'){
             line[strlen(line)-1] = '\0';
         }
-        n_files += is_jpeg(line);
+        n_files ++;
     }
 
 #ifdef DEBUG
@@ -60,9 +54,9 @@ image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir)
     for (int i = 0; fgets(line, sizeof(line), fp); i++){
         
         n_chars_filename_full_path = strlen(line) + strlen(dataset_dir) +2;
-        images[i].filename_full_path = malloc(n_chars_filename_full_path * sizeof(char));
+        images[i].image_path = malloc(n_chars_filename_full_path * sizeof(char));
 
-        if (!images[i].filename_full_path) {
+        if (!images[i].image_path) {
             free_image_filenames(images, n_files);
             fclose(fp);
             return NULL;
@@ -80,12 +74,15 @@ image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir)
         }
 
         if (!is_jpeg(line)){
+            free(images[i].image_name);
+            free(images[i].image_path);
             i--;
+            n_files--;
             continue;
         }
 
 
-        snprintf(images[i].filename_full_path, n_chars_filename_full_path, "%s/%s", dataset_dir, line);
+        snprintf(images[i].image_path, n_chars_filename_full_path, "%s/%s", dataset_dir, line);
         strcpy(images[i].image_name , line);
 
         filename_chars = strlen(images[i].image_name);
@@ -104,12 +101,12 @@ image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir)
 #endif
             free(out_file);
             free(images[i].image_name);
-            free(images[i].filename_full_path);
+            free(images[i].image_path);
             i--;
             n_files--;
             continue;
         }
-        images[i].processed_image_filename_full_path = out_file;
+        images[i].processed_image_path = out_file;
     }
 
     *count = n_files;
@@ -145,7 +142,7 @@ char *create_out_directory(char *directory){
 void print_filenames(image_filename_info *image_names, int count){
     if (!image_names) return;
     for (int i = 0; i < count; i++){
-        printf("%s ", image_names[i].filename_full_path);
+        printf("%s ", image_names[i].image_path);
     }
     printf("\n");
 }
@@ -156,8 +153,8 @@ void free_image_infos(img_info *images, int count) {
 
     for (int i = 0; i < count; i++){
         free(images[i].name_info.image_name);
-        free(images[i].name_info.filename_full_path);
-        free(images[i].name_info.processed_image_filename_full_path);
+        free(images[i].name_info.image_path);
+        free(images[i].name_info.processed_image_path);
         gdImageDestroy(images[i].image);
     }
 	free(images);
@@ -168,7 +165,7 @@ void free_image_filenames(image_filename_info *images, int count) {
 
     for (int i = 0; i < count; i++){
         free(images[i].image_name);
-        free(images[i].filename_full_path);
+        free(images[i].image_path);
     }
 
 	free(images);

@@ -1,3 +1,5 @@
+#ifndef OLD_PHOTO
+#define OLD_PHOTO
 #include <stdio.h>
 #include <pthread.h>
 #include <gd.h>
@@ -13,10 +15,10 @@ typedef enum {
 } stage;
 
 typedef struct {
-    char *filename_full_path;                  // has the directory included
-    char *image_name;                          // just the image names
+    char *image_path;
+    char *image_name;
 
-    char *processed_image_filename_full_path;  // output image name
+    char *processed_image_path;
 } image_filename_info;
 
 typedef struct {
@@ -34,27 +36,20 @@ typedef struct {
     char *generic;    // output_dir or texture_filepath
 } thread_args;
 
-typedef struct thread_output {
-	struct timespec time;
-	int n_images_processed;
-} thread_output;
-
 image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir);
 #ifdef DEBUG
 void print_filenames(image_filename_info*, int count);
 #endif
-int is_jpeg(char *image_name);
+int is_jpeg(const char *image_name);
 
 void free_image_filenames(image_filename_info *images, int count);
 void free_image_infos(img_info *images, int count);
 
-void *thread_process_images(void *arg);
-
 void *thread_contrast(void *arg);
-void *thread_smooth(void *arg);
-void *thread_texture(void *arg);
-void *thread_sepia(void *arg);
+void *thread_smooth  (void *arg);
+void *thread_texture (void *arg);
+void *thread_sepia   (void *arg);
 
 char *create_out_directory(char *directory);
 void write_timings(struct timespec start_time, struct timespec end_time, img_info *images, int n_images, char *dataset_dir);
-void write_to_csv(struct timespec total_time, int n_threads, char *filepath);
+#endif

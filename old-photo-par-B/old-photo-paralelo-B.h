@@ -1,3 +1,5 @@
+#ifndef OLD_PHOTO
+#define OLD_PHOTO
 #include <stdio.h>
 #include <pthread.h>
 #include <gd.h>
@@ -5,10 +7,10 @@
 #define OLD_PHOTO_DIR "old_photo_PAR_B"
 
 typedef struct {
-    char *filename_full_path;                    // has the directory included
+    char *image_path;                    // has the directory included
     char *image_name;                            // just the image names
 
-    char *processed_image_filename_full_path;    // path of the outputted image
+    char *processed_image_path;    // path of the outputted image
 } image_filename_info;
 
 typedef struct {
@@ -35,7 +37,7 @@ image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir)
 #ifdef DEBUG
 void print_filenames(image_filename_info*, int count);
 #endif
-int is_jpeg(char *image_name);
+int is_jpeg(const char *image_name);
 
 void free_image_filenames(image_filename_info *images, int count);
 
@@ -43,4 +45,5 @@ void *thread_process_images(void *arg);
 
 char *create_out_directory(char *dataset_dir); // creates output folder inside the dataset folder
 void write_timings(char *dataset_dir, struct timespec total_time, thread_output **all_timings, int n_images, int n_threads);
-void write_to_csv(struct timespec total_time, int n_threads, char *filepath);
+void write_to_csv(char *dataset_dir, struct timespec total_time, int n_threads);
+#endif

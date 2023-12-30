@@ -13,7 +13,6 @@ int count_digits(int number){
 	for (digits = 0; number != 0; number /= 10) digits++;
 
 	return digits;
-
 }
 
 void write_timings(struct timespec start_time, struct timespec end_time, img_info *images, int n_images, char *dataset_dir) {

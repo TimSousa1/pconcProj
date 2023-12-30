@@ -49,14 +49,12 @@ void write_timings(char *dataset_dir, struct timespec total_time, thread_output 
 }
 
 
-// helper func for graphs
-void write_to_csv(struct timespec total_time, int n_threads, char *filepath) {
-	
+void write_to_csv(char *dataset_dir, struct timespec total_time, int n_threads) {
 	char *file_name;
-	int len = strlen("/timing_.csv") + count_digits(n_threads) + strlen(filepath) + 1;
+	int len = strlen("/timing_.csv") + count_digits(n_threads) + strlen(dataset_dir) + 1;
 	file_name = malloc(len * sizeof(char));
 
-	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.csv", filepath, n_threads);
+	snprintf(file_name, sizeof(char) * len, "%s/timing_%d.csv", dataset_dir, n_threads);
 	
 	FILE *fp = fopen(file_name, "w");	
 	if (!fp) {
@@ -65,11 +63,9 @@ void write_to_csv(struct timespec total_time, int n_threads, char *filepath) {
 #endif
 		return;
 	}
-	
-    fprintf(fp, "threads,time\n");
+    fprintf(fp, "n_threads,time\n");
 	fprintf(fp, "%d,%li.%li\n", n_threads, total_time.tv_sec, total_time.tv_nsec);
 
 	free(file_name);	
     fclose(fp);
 }
-

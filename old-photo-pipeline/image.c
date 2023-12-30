@@ -9,49 +9,29 @@
 #include "old-photo-pipeline.h"
 #include "image-lib.h"
 
-// move to header file for times
+int check_extension(const char *filename, const char *extension){
+    const int filenameLength = strlen(filename);
+    const int extensionLength = strlen(extension);
 
-int is_jpeg(char *image_name){
-    if (!image_name) return 0;
+    const int length_diff = filenameLength - extensionLength;
 
-    int extensionJPEG_size;
-    int extensionJPG_size;
-
-    char extensionJPEG[] = ".jpeg";
-    char extensionJPG[] = ".jpg";
-
-    extensionJPEG_size = strlen(extensionJPEG);
-    extensionJPG_size = strlen(extensionJPG);
-
-    int jpegTrue = 1;
-
-    for (long unsigned int i = strlen(image_name) - extensionJPEG_size; i < strlen(image_name); i++){
-        if (image_name[i] != extensionJPEG[i - strlen(image_name) + extensionJPEG_size]) {
-            jpegTrue = 0;
-            break;
-        }
-    }
-
-    if (jpegTrue) {
+    for (int i = length_diff; i < filenameLength; i++){
+        if (filename[i] != extension[i - filenameLength + extensionLength]) {
 #ifdef DEBUG
-        printf("[INFO] file %s is a jpeg!\n", image_name);
-#endif
-        return 1;
-    }
-
-    for (long unsigned int i = strlen(image_name) - extensionJPG_size; i < strlen(image_name); i++){
-        if (image_name[i] != extensionJPG[i - strlen(image_name) + extensionJPG_size]) {
-#ifdef DEBUG
-            printf("[INFO] file %s is NOT a jpeg!\n", image_name);
+            printf("[INFO] file %s is NOT a %s\n", filename, extension);
 #endif
             return 0;
         }
     }
-
 #ifdef DEBUG
-        printf("[INFO] file %s is a jpeg!\n", image_name);
+            printf("[INFO] file %s is a %s\n", filename, extension);
 #endif
     return 1;
+}
+
+int is_jpeg(const char *image_name){
+    if (!image_name) return 0;
+    return (check_extension(image_name, ".jpeg") || check_extension(image_name, ".jpg"));
 }
 
 void *thread_contrast(void *arg){
@@ -66,15 +46,15 @@ void *thread_contrast(void *arg){
     while (read(pipe_in, &image_name, sizeof(image_name)) > 0){
         clock_gettime(CLOCK_MONOTONIC, &info.processing_start);
 
-		image = read_jpeg_file(image_name.filename_full_path);
+		image = read_jpeg_file(image_name.image_path);
         if (!image) break;
 
 		gdImageContrast(image, -20);
 
         info.image = image;
         info.name_info.image_name = image_name.image_name;
-        info.name_info.filename_full_path = image_name.filename_full_path;
-        info.name_info.processed_image_filename_full_path = image_name.processed_image_filename_full_path;
+        info.name_info.image_path = image_name.image_path;
+        info.name_info.processed_image_path = image_name.processed_image_path;
 
         write(pipe_out, &info, sizeof(img_info));
 #ifdef DEBUG
@@ -145,7 +125,7 @@ void *thread_sepia(void *arg){
 
     for (int i = 0; read(pipe_in, &info[i], sizeof(*info)) > 0 && i < n_images; i++){
         gdImageColor(info[i].image, 100, 60, 0, 0);
-		if (write_jpeg_file(info[i].image, info[i].name_info.processed_image_filename_full_path) == 0){
+		if (write_jpeg_file(info[i].image, info[i].name_info.processed_image_path) == 0){
             fprintf(stderr, "[ERROR] Couldn't save %s!\n", info[i].name_info.image_name);
         }
         clock_gettime(CLOCK_MONOTONIC, &info[i].processing_end);

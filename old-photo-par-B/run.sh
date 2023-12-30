@@ -13,10 +13,10 @@ do
     for ((i=1; i<=$2; i*=2))
     do
         echo "rm -r $folder/old_photo_PAR_B"
-        rm -r $folder/old_photo_PAR_A
+        rm -r $folder/old_photo_PAR_B
 
         echo "./old-photo-paralelo-B $folder $i"
-        ./old-photo-paralelo-A $folder $i
+        ./old-photo-paralelo-B $folder $i
     done
 
     echo "awk '(NR == 1) || (FNR > 1)' $folder/*.csv > $folder.csv"

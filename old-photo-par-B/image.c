@@ -10,51 +10,29 @@
 #include "old-photo-paralelo-B.h"
 #include "image-lib.h"
 
-int is_jpeg(char *image_name){
-    if (!image_name) return 0;
+int check_extension(const char *filename, const char *extension){
+    const int filenameLength = strlen(filename);
+    const int extensionLength = strlen(extension);
 
-    int extensionJPEG_size;
-    int extensionJPG_size;
+    const int length_diff = filenameLength - extensionLength;
 
-    char extensionJPEG[] = ".jpeg";
-    char extensionJPG[] = ".jpg";
-
-    extensionJPEG_size = strlen(extensionJPEG);
-    extensionJPG_size = strlen(extensionJPG);
-
-    int jpegTrue = 1;
-
+    for (int i = length_diff; i < filenameLength; i++){
+        if (filename[i] != extension[i - filenameLength + extensionLength]) {
 #ifdef DEBUG
-    printf("[INFO] got file %s\n", image_name);
-#endif
-
-    for (long unsigned int i = strlen(image_name) - extensionJPEG_size; i < strlen(image_name); i++){
-        if (image_name[i] != extensionJPEG[i - strlen(image_name) + extensionJPEG_size]) {
-            jpegTrue = 0;
-            break;
-        }
-    }
-
-    if (jpegTrue) {
-#ifdef DEBUG
-        printf("[INFO] %s is a jpeg\n", image_name);
-#endif
-        return 1;
-    }
-
-    for (long unsigned int i = strlen(image_name) - extensionJPG_size; i < strlen(image_name); i++){
-        if (image_name[i] != extensionJPG[i - strlen(image_name) + extensionJPG_size]) {
-#ifdef DEBUG
-        printf("[INFO] %s is NOT a jpeg\n", image_name);
+            printf("[INFO] file %s is NOT a %s\n", filename, extension);
 #endif
             return 0;
         }
     }
-
 #ifdef DEBUG
-        printf("[INFO] %s is a jpeg\n", image_name);
+            printf("[INFO] file %s is a %s\n", filename, extension);
 #endif
     return 1;
+}
+
+int is_jpeg(const char *image_name){
+    if (!image_name) return 0;
+    return (check_extension(image_name, ".jpeg") || check_extension(image_name, ".jpg"));
 }
 
 
@@ -95,7 +73,7 @@ void *thread_process_images(void *arg) {
 
         clock_gettime(CLOCK_MONOTONIC, &image_start);
 
-		image = read_jpeg_file(image_name.filename_full_path);
+		image = read_jpeg_file(image_name.image_path);
         if (!image) {
             free(ret->image_times);
             free(ret);
@@ -111,10 +89,9 @@ void *thread_process_images(void *arg) {
 
         gdImageColor(image, 100, 60, 0, 0);
 
-		if (write_jpeg_file(image, image_name.processed_image_filename_full_path) == 0){
+		if (write_jpeg_file(image, image_name.processed_image_path) == 0){
             fprintf(stderr, "[ERROR] Couldn't save image!\n");
-        }
-		gdImageDestroy(image);	
+        } gdImageDestroy(image);	
 
         clock_gettime(CLOCK_MONOTONIC, &image_end);
 
