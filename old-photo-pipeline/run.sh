@@ -5,6 +5,8 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+for f in $1/*.csv; do mv "$f" "$(echo "$f" | sed s/csv/csv.bak/)"; done
+
 for folder in $1/*
 do
     echo "rm $folder/*.csv"

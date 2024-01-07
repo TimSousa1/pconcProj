@@ -8,9 +8,9 @@
 
 typedef struct {
     char *image_path;                    // has the directory included
-    char *image_name;                            // just the image names
+    char *image_name;                    // just the image names
 
-    char *processed_image_path;    // path of the outputted image
+    char *processed_image_path;          // path of the outputted image
 } image_filename_info;
 
 typedef struct {
@@ -34,10 +34,10 @@ typedef struct thread_output {
 } thread_output;
 
 image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir);
+
 #ifdef DEBUG
 void print_filenames(image_filename_info*, int count);
 #endif
-int is_jpeg(const char *image_name);
 
 void free_image_filenames(image_filename_info *images, int count);
 

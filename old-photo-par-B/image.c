@@ -10,34 +10,6 @@
 #include "old-photo-paralelo-B.h"
 #include "image-lib.h"
 
-int check_extension(const char *filename, const char *extension){
-    const int filenameLength = strlen(filename);
-    const int extensionLength = strlen(extension);
-
-    const int length_diff = filenameLength - extensionLength;
-
-    for (int i = length_diff; i < filenameLength; i++){
-        if (filename[i] != extension[i - filenameLength + extensionLength]) {
-#ifdef DEBUG
-            printf("[INFO] file %s is NOT a %s\n", filename, extension);
-#endif
-            return 0;
-        }
-    }
-#ifdef DEBUG
-            printf("[INFO] file %s is a %s\n", filename, extension);
-#endif
-    return 1;
-}
-
-int is_jpeg(const char *image_name){
-    if (!image_name) return 0;
-    return (check_extension(image_name, ".jpeg") || check_extension(image_name, ".jpg"));
-}
-
-
-int image_index = 0;
-
 
 void *thread_process_images(void *arg) {
 

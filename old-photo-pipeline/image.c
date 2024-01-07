@@ -9,30 +9,6 @@
 #include "old-photo-pipeline.h"
 #include "image-lib.h"
 
-int check_extension(const char *filename, const char *extension){
-    const int filenameLength = strlen(filename);
-    const int extensionLength = strlen(extension);
-
-    const int length_diff = filenameLength - extensionLength;
-
-    for (int i = length_diff; i < filenameLength; i++){
-        if (filename[i] != extension[i - filenameLength + extensionLength]) {
-#ifdef DEBUG
-            printf("[INFO] file %s is NOT a %s\n", filename, extension);
-#endif
-            return 0;
-        }
-    }
-#ifdef DEBUG
-            printf("[INFO] file %s is a %s\n", filename, extension);
-#endif
-    return 1;
-}
-
-int is_jpeg(const char *image_name){
-    if (!image_name) return 0;
-    return (check_extension(image_name, ".jpeg") || check_extension(image_name, ".jpg"));
-}
 
 void *thread_contrast(void *arg){
     thread_args *args = (thread_args*) arg;
@@ -133,6 +109,5 @@ void *thread_sepia(void *arg){
         printf("[SEPIA] %s processed\n", info[i].name_info.image_name);
 #endif
     }
-
     return (void *) info;
 }
