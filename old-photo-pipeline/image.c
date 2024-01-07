@@ -74,7 +74,7 @@ void *thread_texture(void *arg){
     img_info info;
 
     texture = read_png_file(texture_filename);
-    if (!texture) return NULL; // check later heh ;)
+    if (!texture) return NULL; 
     while (read(pipe_in, &info, sizeof(info)) > 0){
         image_tmp = info.image;
 		info.image = texture_image(image_tmp, texture);

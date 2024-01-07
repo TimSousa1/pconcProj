@@ -99,7 +99,7 @@ int main(int argc, char **argv){
     close(pipe_fd[1]);
 
 	void *ret;
-	thread_output **outputs = malloc(n_threads * sizeof(*outputs)); // avoiding AVL
+	thread_output **outputs = malloc(n_threads * sizeof(*outputs)); // avoiding VLA
 
 	for (int i = 0; i < n_threads; i++) {
 		pthread_join(thread_id[i], &ret);
