@@ -115,7 +115,6 @@ int main(int argc, char **argv){
     clock_gettime(CLOCK_MONOTONIC, &end_time_total);
 
     write_timings(start_time_total, end_time_total, output, count, dataset_dir);
-    write_to_csv(start_time_total, end_time_total, dataset_dir);
 
 	free_image_infos(output, count);	
     free(image_names);

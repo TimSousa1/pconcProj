@@ -99,7 +99,7 @@ int main(int argc, char **argv){
     close(pipe_fd[1]);
 
 	void *ret;
-	thread_output **outputs = malloc(n_threads * sizeof(*outputs)); // avoiding AVL
+	thread_output **outputs = malloc(n_threads * sizeof(*outputs)); // avoiding VLA
 
 	for (int i = 0; i < n_threads; i++) {
 		pthread_join(thread_id[i], &ret);
@@ -113,7 +113,6 @@ int main(int argc, char **argv){
 	struct timespec total_time = diff_timespec(&end_time_total, &start_time_total);
 	
 	write_timings(dataset_dir, total_time, outputs, count, n_threads);
-	write_to_csv(dataset_dir, total_time, n_threads);
 
 	free_image_filenames(image_names, count);	
 

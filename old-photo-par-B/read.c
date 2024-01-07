@@ -72,12 +72,6 @@ image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir)
             line[strlen(line)-1] = '\0';
         }
 
-        if (!is_jpeg(line)){
-            i--;
-            continue;
-        }
-
-
         snprintf(images[i].image_path, n_chars_filename_full_path, "%s/%s", dataset_dir, line);
         strcpy(images[i].image_name , line);
 

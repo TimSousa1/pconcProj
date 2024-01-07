@@ -33,14 +33,13 @@ typedef struct {
     int pipe_read;
     int pipe_write;
 
-    char *generic;    // output_dir or texture_filepath
+    void *generic;    // output_dir or texture_filepath
 } thread_args;
 
 image_filename_info *get_filenames(char *dataset_dir, int *count, char *out_dir);
 #ifdef DEBUG
 void print_filenames(image_filename_info*, int count);
 #endif
-int is_jpeg(const char *image_name);
 
 void free_image_filenames(image_filename_info *images, int count);
 void free_image_infos(img_info *images, int count);
